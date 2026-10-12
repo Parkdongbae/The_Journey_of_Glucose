@@ -1,0 +1,14 @@
+# 편집기/도구 내부 폴더
+.omo/
+.playwright-mcp/
+
+# 대용량 중복 아카이브 (images/ 폴더와 동일 내용)
+images.zip
+
+# 로컬 백업 사본
+index1.html
+index_old.html
+
+# OS 불필요 파일
+Thumbs.db
+Desktop.ini
