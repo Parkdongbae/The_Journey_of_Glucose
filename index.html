@@ -519,9 +519,16 @@ button { font-family: inherit; cursor: pointer; }
           <div class="absorb-done" id="absorb-done">
             <img src="images/포도당_즐거운모습.jpg" alt="즐거운 포도당" onerror="imgError(this)">
             <div class="big">성공! 포도당이 혈액 속으로 🎉</div>
-            <p style="font-size:.9rem;color:var(--sub)">이제 포도당은 혈장에 녹아 온몸으로 여행해요.</p>
+            <p style="font-size:.9rem;color:var(--sub)">이제 포도당은 혈장에 녹아 <b>간문맥</b>을 따라 간으로 먼저 이동해요.</p>
             <button class="btn btn-sm btn-ghost" onclick="resetAbsorb()">↻ 다시 해보기</button>
           </div>
+        </div>
+        <div class="card img-frame">
+          <img src="images/소장에서 흡수된 포도당의 간문맥 이동 경로.jpg" alt="소장에서 흡수된 포도당의 간문맥 이동 경로" onerror="imgError(this)">
+        </div>
+        <div class="step-caption">
+          모세혈관으로 들어온 포도당은 <b>간문맥</b>을 따라 <b>간</b>에 먼저 들러요.
+          간에서 처리된 뒤 <b>간정맥</b> → <b>심장</b> 순서로 나아가 온몸순환에 합류해요.
         </div>
         <div class="card quiz-box" id="quiz-absorb"></div>
         <div class="scene-nav" data-stage="absorb"></div>
@@ -1170,17 +1177,17 @@ var ROUTES = {
   pulm: {
     btn: "#btn-pulm",
     steps: [
-      { ring: [50, 46], cap: "<span class='cap-num'>①</span> 심장(우심실)에서 혈액이 나가 <b>폐</b>로 향해요. (폐동맥)" },
-      { ring: [66, 22], cap: "<span class='cap-num'>②</span> 폐의 <b>허파꽈리</b>에서 이산화 탄소를 내보내고 <b>산소</b>를 얻어요." },
-      { ring: [50, 46], cap: "<span class='cap-num'>③</span> 산소를 실은 혈액이 다시 심장(좌심방)으로 돌아와요. (폐정맥) — 이것이 <b>허파순환</b>!" }
+      { ring: [19, 23], cap: "<span class='cap-num'>①</span> 심장(우심실)에서 혈액이 나가 <b>폐</b>로 향해요. (폐동맥)" },
+      { ring: [52, 20], cap: "<span class='cap-num'>②</span> 폐의 <b>모세혈관</b>(허파꽈리 주변)에서 이산화 탄소를 내보내고 <b>산소</b>를 얻어요." },
+      { ring: [80, 23], cap: "<span class='cap-num'>③</span> 산소를 실은 혈액이 다시 심장(좌심방)으로 돌아와요. (폐정맥) — 이것이 <b>허파순환</b>!" }
     ]
   },
   sys: {
     btn: "#btn-sys",
     steps: [
-      { ring: [50, 46], cap: "<span class='cap-num'>①</span> 심장(좌심실)에서 혈액이 <b>온몸</b>으로 나가요. (대동맥)" },
-      { ring: [30, 70], cap: "<span class='cap-num'>②</span> 온몸의 세포에 <b>산소와 영양소(포도당!)</b>를 전달하고, 이산화 탄소와 노폐물을 받아요." },
-      { ring: [50, 46], cap: "<span class='cap-num'>③</span> 혈액이 다시 심장(우심방)으로 돌아와요. (대정맥) — 이것이 <b>온몸순환</b>!" }
+      { ring: [81, 62], cap: "<span class='cap-num'>①</span> 심장(좌심실)에서 혈액이 <b>온몸</b>으로 나가요. (대동맥)" },
+      { ring: [49, 78], cap: "<span class='cap-num'>②</span> 온몸의 <b>모세혈관</b>에서 세포에 <b>산소와 영양소(포도당!)</b>를 전달하고, 이산화 탄소와 노폐물을 받아요." },
+      { ring: [17, 62], cap: "<span class='cap-num'>③</span> 혈액이 다시 심장(우심방)으로 돌아와요. (대정맥) — 이것이 <b>온몸순환</b>!" }
     ]
   }
 };
