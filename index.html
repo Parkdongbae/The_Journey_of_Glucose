@@ -623,10 +623,9 @@ button { font-family: inherit; cursor: pointer; }
           </div>
           <p class="scene-desc">
             심장은 온몸의 <b>펌프</b>예요. 포도당은 <b>혈장</b>에 녹아 이동하고, 산소는 <b>적혈구</b>에 실려 이동해요.
-            버튼을 눌러 두 순환 경로를 따라가 볼까요?
+            버튼을 눌러 순환 경로를 따라가 볼까요?
           </p>
           <div class="route-btns">
-            <button type="button" class="route-btn pulm" id="btn-pulm" data-route="pulm" aria-controls="circ-caption">🫁 허파순환 따라가기</button>
             <button type="button" class="route-btn sys" id="btn-sys" data-route="sys" aria-controls="circ-caption">💪 온몸순환 따라가기</button>
           </div>
         </div>
@@ -863,6 +862,11 @@ button { font-family: inherit; cursor: pointer; }
           </div>
         </div>
         <div class="step-caption oxy" id="oxy-cap-pulm">버튼을 누르면 경로가 하나씩 표시돼요.</div>
+        <div class="card">
+          <div class="img-frame">
+            <img src="images/oxygen/폐순환.png" alt="폐순환 – 심장과 폐를 오가는 혈액 순환과 기체 교환" onerror="imgError(this)">
+          </div>
+        </div>
         <div class="card">
           <h3 style="margin-bottom:8px">🩸 산소는 적혈구에 실려 이동해요</h3>
           <div class="img-frame">
@@ -1694,14 +1698,6 @@ function resetAbsorb() {
    순환 장면 (경로 애니메이션)
    ===================================================================== */
 var ROUTES = {
-  pulm: {
-    btn: "#btn-pulm",
-    steps: [
-      { ring: [19, 23], cap: "<span class='cap-num'>①</span> 심장(우심실)에서 혈액이 나가 <b>폐</b>로 향해요. (폐동맥)" },
-      { ring: [52, 20], cap: "<span class='cap-num'>②</span> 폐의 <b>모세혈관</b>(허파꽈리 주변)에서 이산화 탄소를 내보내고 <b>산소</b>를 얻어요." },
-      { ring: [80, 23], cap: "<span class='cap-num'>③</span> 산소를 실은 혈액이 다시 심장(좌심방)으로 돌아와요. (폐정맥) — 이것이 <b>허파순환</b>!" }
-    ]
-  },
   sys: {
     btn: "#btn-sys",
     steps: [
@@ -1718,19 +1714,18 @@ function stopRouteAnimation(resetCaption) {
     clearTimeout(routeTimer);
     routeTimer = null;
   }
-  var pulm = $("#btn-pulm"), sys = $("#btn-sys");
-  [pulm, sys].forEach(function (btn) {
-    if (!btn) return;
-    btn.disabled = false;
-    btn.classList.remove("is-playing");
-    btn.removeAttribute("aria-busy");
-  });
+  var sys = $("#btn-sys");
+  if (sys) {
+    sys.disabled = false;
+    sys.classList.remove("is-playing");
+    sys.removeAttribute("aria-busy");
+  }
   var ring = $("#circ-ring");
   var traveler = $("#route-traveler");
   if (ring) ring.classList.remove("show");
   if (traveler) traveler.classList.remove("show");
   if (resetCaption && $("#circ-caption")) {
-    $("#circ-caption").textContent = "버튼을 눌러 허파순환 또는 온몸순환 경로를 확인해 보세요.";
+    $("#circ-caption").textContent = "버튼을 눌러 온몸순환 경로를 확인해 보세요.";
   }
 }
 
@@ -1744,12 +1739,11 @@ function initCirculationControls() {
 
 function playRoute(key) {
   var route = ROUTES[key];
-  var pulm = $("#btn-pulm"), sys = $("#btn-sys");
+  var sys = $("#btn-sys");
   var ring = $("#circ-ring"), cap = $("#circ-caption"), traveler = $("#route-traveler");
-  if (!route || !pulm || !sys || !ring || !cap) return;
+  if (!route || !sys || !ring || !cap) return;
 
   stopRouteAnimation(false);
-  pulm.disabled = true;
   sys.disabled = true;
   var activeBtn = $(route.btn);
   if (activeBtn) {
@@ -1761,9 +1755,7 @@ function playRoute(key) {
   function step() {
     if (i >= route.steps.length) {
       stopRouteAnimation(false);
-      cap.innerHTML = key === "pulm"
-        ? "🫁 <b>허파순환</b>: 심장 ↔ 폐 사이의 순환으로 <b>산소와 이산화 탄소를 교환</b>해요."
-        : "💪 <b>온몸순환</b>: 심장 ↔ 온몸 사이의 순환으로 <b>산소·영양소를 전달</b>하고 노폐물을 회수해요.";
+      cap.innerHTML = "💪 <b>온몸순환</b>: 심장 ↔ 온몸 사이의 순환으로 <b>산소·영양소를 전달</b>하고 노폐물을 회수해요.";
       return;
     }
     var s = route.steps[i];
@@ -1888,14 +1880,22 @@ var OXY_ROUTES = {
     steps: [
       { ring: [41, 58], cap: "<span class='cap-num'>① 우심방</span> 온몸에서 돌아온 <b>산소가 적은 혈액</b>이 모여 있는 곳이에요. 여기서 산소의 여행이 다시 시작돼요!" },
       { ring: [52, 69], cap: "<span class='cap-num'>② 우심실</span> 혈액을 받아 <b>폐동맥</b>으로 내보내요." },
-      { ring: [30, 34], cap: "<span class='cap-num'>③ 폐동맥</span> 산소가 적은 혈액을 <b>폐</b>로 운반해요." },
-      { ring: [15, 36], oxy2: true, cap: "<span class='cap-num'>④ 폐 (왼쪽)</span> 허파꽈리에서 이산화 탄소를 내려놓고 <b>산소(O₂)를 받았어요</b>. 산소가 <b>2개</b>로 불어났네요!" },
-      { ring: [24, 44], oxy2: true, cap: "<span class='cap-num'>⑤ 폐정맥</span> <b>산소 2개를 실은 혈액</b>이 심장으로 돌아가요." },
-      { ring: [54, 47], oxy2: true, cap: "<span class='cap-num'>⑥ 좌심방</span> 산소 가득한 혈액이 심장으로 들어와요." },
-      { ring: [59, 68], oxy2: true, cap: "<span class='cap-num'>⑦ 좌심실</span> 심장에서 가장 두꺼운 벽! 혈액을 <b>온몸으로</b> 힘차게 내보내요." },
-      { ring: [67, 63], oxy2: true, cap: "<span class='cap-num'>⑧ 대동맥</span> 산소 가득한 혈액이 <b>온몸</b>으로 향하는 큰 길이에요." },
-      { ring: [53, 91], oxy2: true, cap: "<span class='cap-num'>⑨ 온몸 모세혈관</span> 조직 세포에 <b>산소를 전달</b>하고, 이산화 탄소를 받아요." },
-      { ring: [39, 82], cap: "<span class='cap-num'>⑩ 하대정맥</span> 산소를 전달하고 <b>1개</b>가 된 산소가 다시 심장(<b>우심방</b>)으로 돌아와요. — 순환 완성!" }
+      { ring: [47, 48], cap: "<span class='cap-num'>③</span> 우심실에서 나온 혈액이 <b>폐동맥</b>을 따라 폐를 향해 올라가고 있어요." },
+      { ring: [38, 36], cap: "<span class='cap-num'>④</span> 폐동맥을 따라 <b>폐</b>를 향해 이동하고 있어요." },
+      { ring: [30, 34], cap: "<span class='cap-num'>⑤ 폐동맥</span> 산소가 적은 혈액을 <b>폐</b>로 운반해요." },
+      { ring: [15, 36], oxy2: true, cap: "<span class='cap-num'>⑥ 폐 (왼쪽)</span> 허파꽈리에서 이산화 탄소를 내려놓고 <b>산소(O₂)를 받았어요</b>. 산소가 <b>2개</b>로 불어났네요!" },
+      { ring: [24, 44], oxy2: true, cap: "<span class='cap-num'>⑦ 폐정맥</span> <b>산소 2개를 실은 혈액</b>이 심장으로 돌아가요." },
+      { ring: [44.5, 44], oxy2: true, cap: "<span class='cap-num'>⑧</span> <b>산소 2개를 실은 혈액</b>이 폐정맥을 따라 심장으로 다가가고 있어요." },
+      { ring: [54, 47], oxy2: true, cap: "<span class='cap-num'>⑨ 좌심방</span> 산소 가득한 혈액이 심장으로 들어와요." },
+      { ring: [59, 68], oxy2: true, cap: "<span class='cap-num'>⑩ 좌심실</span> 심장에서 가장 두꺼운 벽! 혈액을 <b>온몸으로</b> 힘차게 내보내요." },
+      { ring: [56.5, 58], oxy2: true, cap: "<span class='cap-num'>⑪ 대동맥판</span> 좌심실에서 나온 혈액이 <b>대동맥판</b>을 지나 <b>대동맥</b>으로 나가요." },
+      { ring: [51.2, 31], oxy2: true, cap: "<span class='cap-num'>⑫ 상행 대동맥</span> 대동맥을 따라 혈액이 <b>위로</b> 올라가고 있어요. 일부는 <b>머리·팔</b>로 갈라져요." },
+      { ring: [63.5, 45], oxy2: true, cap: "<span class='cap-num'>⑬</span> 대동맥이 꺾여 혈액이 <b>아래 몸통</b>을 향해 내려가고 있어요." },
+      { ring: [67, 63], oxy2: true, cap: "<span class='cap-num'>⑭ 대동맥</span> 산소 가득한 혈액이 <b>온몸</b>으로 향하는 큰 길이에요." },
+      { ring: [66.5, 73], oxy2: true, cap: "<span class='cap-num'>⑮</span> 대동맥을 따라 혈액이 <b>온몸</b>을 향해 내려가고 있어요." },
+      { ring: [66, 83], oxy2: true, cap: "<span class='cap-num'>⑯</span> 대동맥을 따라 내려온 혈액이 <b>온몸 모세혈관</b>으로 향하고 있어요." },
+      { ring: [53, 91], oxy2: true, cap: "<span class='cap-num'>⑰ 온몸 모세혈관</span> 조직 세포에 <b>산소를 전달</b>하고, 이산화 탄소를 받아요." },
+      { ring: [39, 82], cap: "<span class='cap-num'>⑱ 하대정맥</span> 산소를 전달하고 <b>1개</b>가 된 산소가 다시 심장(<b>우심방</b>)으로 돌아와요. — 순환 완성!" }
     ]
   },
   sys: {
