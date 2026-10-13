@@ -64,6 +64,7 @@ button { font-family: inherit; cursor: pointer; }
 .logo img { width: 38px; height: 38px; object-fit: cover; border-radius: 50%; mix-blend-mode: multiply; }
 .logo .logo-title { font-size: 1.05rem; font-weight: 800; white-space: nowrap; }
 .logo .logo-title small { display: block; font-size: .62rem; color: var(--sub); font-weight: 600; }
+.logo img.mascot-o2-logo { clip-path: circle(37% at 47% 42%); transform: scale(1.28); }
 
 .stage-dots { display: flex; gap: 4px; flex: 1; justify-content: flex-start; overflow-x: auto; padding: 4px; min-width: 0; }
 .stage-dot {
@@ -136,7 +137,15 @@ button { font-family: inherit; cursor: pointer; }
   width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
   border: 3px solid #fff; mix-blend-mode: multiply;
 }
-.route-btn.is-playing { box-shadow: 0 0 0 4px rgba(255,159,67,.22); }
+.route-btn.is-playing { box-shadow: 0 0 0 4px rgba(255, 159, 67, .22); }
+/* 산소 2개 표현: 폐에서 산소를 받으면 듀오로 표시 */
+.route-traveler.oxy .oxy-twin { display: none; }
+.route-traveler.oxy.duo .oxy-main { position: absolute; left: -26px; top: 2px; }
+.route-traveler.oxy.duo .oxy-twin {
+  display: block; position: absolute; left: 26px; top: 2px;
+  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+  border: 3px solid #fff; mix-blend-mode: multiply;
+}
 @media (prefers-reduced-motion: reduce) {
   .scene.active .img-frame > img,
   .scene.active .home-hero .title-img,
@@ -402,14 +411,69 @@ button { font-family: inherit; cursor: pointer; }
   .header-btns .hbtn { padding: 6px 8px; font-size: .72rem; }
 }
 .sidebar-close { align-self: flex-end; }
+
+/* ===== 코스 선택 (홈) ===== */
+.home-banner { border-radius: 20px; box-shadow: var(--shadow); width: 100%; display: block; }
+.course-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+@media (max-width: 700px) { .course-grid { grid-template-columns: 1fr; } }
+.course-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px;
+  border: 2.5px solid transparent; box-shadow: var(--shadow); cursor: pointer; text-align: left;
+  transition: transform .15s ease, box-shadow .15s ease; background: #fff;
+}
+.course-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(33, 37, 41, .16); }
+.course-card.glucose { background: linear-gradient(160deg, #fff9e8, #ffe8cc); border-color: #ffd43b; }
+.course-card.oxygen  { background: linear-gradient(160deg, #e7f5ff, #d0ebff); border-color: #74c0fc; }
+.cc-head { display: flex; align-items: center; gap: 10px; }
+.cc-thumb { width: 56px; height: 56px; flex: none; }
+.cc-name { font-size: 1.1rem; font-weight: 900; }
+.course-card.glucose .cc-name { color: #e8590c; }
+.course-card.oxygen .cc-name { color: #1864ab; }
+.cc-desc { font-size: .85rem; color: var(--sub); line-height: 1.5; }
+.cc-progress { font-size: .78rem; font-weight: 800; color: #495057; background: rgba(255, 255, 255, .75); border-radius: 999px; padding: 4px 10px; align-self: flex-start; }
+.cc-btn { margin-top: auto; }
+.course-card.oxygen .cc-btn { background: var(--blue); }
+.course-card.oxygen .cc-btn:hover { filter: brightness(1.06); }
+
+/* 두 코스 완주 → 통합 정리 안내 */
+.integrated-open {
+  margin-top: 14px; padding: 13px 15px; border-radius: 14px; background: #e6fcf5;
+  border: 2px solid #0ca678; font-size: .9rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.integrated-locked {
+  margin-top: 14px; padding: 13px 15px; border-radius: 14px; background: #f1f3f5;
+  border: 2px dashed #adb5bd; font-size: .84rem; color: var(--sub); line-height: 1.55;
+}
+
+/* ===== 산소 마스코트: 가짜 투명 배경(체커보드 jpg)을 얼굴 원만 남기고 잘라내기 ===== */
+.mascot-o2 { clip-path: circle(37% at 47% 42%); transform: scale(1.5); }
+.cc-thumb.mascot-o2 { clip-path: circle(40% at 47% 42%); transform: scale(1.6); }
+
+/* ===== 산소 코스 공통 ===== */
+.badge-oxy { background: var(--blue); }
+.step-pill.oxy.on { background: var(--blue); box-shadow: 0 4px 10px rgba(28, 126, 214, .3); }
+.step-pill.oxy.done { background: #d0ebff; color: #1864ab; }
+.ring.oxy { border-color: rgba(28, 126, 214, .85); }
+.ring.oxy.show { animation: ringBlinkOxy 1.1s ease-in-out infinite; }
+@keyframes ringBlinkOxy {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(28, 126, 214, .45); }
+  50%      { opacity: .15; transform: translate(-50%, -50%) scale(1.22); box-shadow: 0 0 0 22px rgba(28, 126, 214, 0); }
+}
+.step-caption.oxy { background: #f1f7ff; border-color: #d0ebff; }
+.step-caption.oxy .cap-num { color: #1864ab; }
+.route-traveler.oxy img { clip-path: circle(37% at 47% 42%); transform: scale(1.6); }
+.oxy-eq {
+  margin-top: 12px; padding: 12px 16px; border-radius: 12px; text-align: center;
+  background: #f1f7ff; border: 2px solid #a5d8ff; font-size: 1.05rem; font-weight: 800; color: #1864ab;
+}
 </style>
 </head>
 <body>
 <div id="app">
   <header class="app-header">
     <button class="logo" onclick="showScene('home')" aria-label="홈으로">
-      <img src="images/포도당_기본.jpg" alt="포도당 캐릭터" onerror="imgError(this)">
-      <span class="logo-title">포도당의 여행<small>떡볶이에서 에너지까지</small></span>
+      <img id="logo-img" src="images/포도당_기본.jpg" alt="코스 캐릭터" onerror="imgError(this)">
+      <span class="logo-title" id="logo-title">우리 몸 속 여행하기<small>포도당 · 산소 코스</small></span>
     </button>
     <nav class="stage-dots" id="stage-dots" aria-label="학습 단계"></nav>
     <div class="header-btns">
@@ -421,24 +485,37 @@ button { font-family: inherit; cursor: pointer; }
   <main class="app-main">
     <section id="scene-panel">
 
-      <!-- ===== 홈 ===== -->
+      <!-- ===== 홈 (코스 선택) ===== -->
       <div class="scene" id="scene-home">
         <div class="card home-hero">
-          <img class="title-img" src="images/포도당의 여행 메인 타이틀 화면.png" alt="포도당의 여행 메인 타이틀" onerror="imgError(this)">
-          <h1 class="home-title">포도당의 <span class="accent">여행</span> 🍡</h1>
+          <h1 class="home-title">우리 몸 속 <span class="accent">여행하기</span> 🧭</h1>
           <p class="home-sub">
-            떡볶이를 먹으면, 그 속의 탄수화물(녹말)은 <b>포도당</b>으로 바뀌어 우리 몸을 여행해요!<br>
-            소화 → 흡수 → 순환 → 호흡 → 배설 → 세포호흡까지, 포도당과 함께 떠나요!
+            중요한 분자들이 우리 몸을 어떻게 여행하는지 알아봐요!<br>
+            여행하고 싶은 코스를 선택해 주세요. (각 여행에는 영상, 활동, 짧은 퀴즈가 있어요)
           </p>
-          <div class="home-btns">
-            <button class="btn btn-primary" onclick="startNew()">🚗 여행 시작하기</button>
-            <button class="btn btn-ghost" id="btn-continue" style="display:none" onclick="continueJourney()">▶ 이어하기</button>
+          <img class="home-banner" src="images/oxygen/Course Selection Screen – Glucose vs Oxygen.png" alt="포도당의 여행과 산소의 여행 코스 선택" onerror="imgError(this)">
+          <div class="course-grid">
+            <button class="course-card glucose" onclick="startCourse('glucose')">
+              <span class="cc-head">
+                <img class="cc-thumb" src="images/포도당_기본.jpg" alt="포도당 캐릭터" onerror="imgError(this)">
+                <span class="cc-name">포도당의 여행</span>
+              </span>
+              <span class="cc-desc">떡볶이를 먹으면 떡 속 녹말이 <b>포도당</b>으로 바뀌어요. 소화 → 흡수 → 순환 → 호흡 → 배설까지, 포도당과 함께 떠나는 여행이에요.</span>
+              <span class="cc-progress" id="cc-progress-glucose">퀴즈 0/9 완료</span>
+              <span class="btn btn-primary cc-btn" id="cc-btn-glucose">🚗 여행 시작하기</span>
+            </button>
+            <button class="course-card oxygen" onclick="startCourse('oxygen')">
+              <span class="cc-head">
+                <img class="cc-thumb mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소 캐릭터" onerror="imgError(this)">
+                <span class="cc-name">산소의 여행</span>
+              </span>
+              <span class="cc-desc">체육 시간, 크게 들이마신 공기 속 <b>산소(O₂)</b>가 코 → 폐 → 심장 → 세포로 이동해 에너지를 만드는 여행이에요.</span>
+              <span class="cc-progress" id="cc-progress-oxygen">퀴즈 0/9 완료</span>
+              <span class="btn btn-primary cc-btn" id="cc-btn-oxygen">💨 여행 시작하기</span>
+            </button>
           </div>
-          <div class="howto">
-            <div class="howto-item"><b>1️⃣ 이야기를 따라가요</b>떡볶이 한 입이 에너지가 되기까지의 여정을 순서대로 학습해요.</div>
-            <div class="howto-item"><b>2️⃣ 퀴즈를 풀어요</b>각 장면마다 퀴즈가 나와요. 오답은 다시 풀 수 있어요.</div>
-            <div class="howto-item"><b>3️⃣ 인체 모형을 눌러요</b>오른쪽 인체 모형의 기관을 클릭하면 설명이 나타나요.</div>
-            <div class="howto-item"><b>4️⃣ 결과를 확인해요</b>학습 결과에서 내 점수와 학습 시간을 볼 수 있어요.</div>
+          <div class="integrated-locked" id="integrated-notice">
+            🔒 <b>통합 정리</b>는 두 코스의 퀴즈를 모두 풀면 열려요. 포도당과 산소가 만나 세포호흡으로 에너지를 만드는 장면이에요!
           </div>
         </div>
       </div>
@@ -652,6 +729,262 @@ button { font-family: inherit; cursor: pointer; }
         <div class="scene-nav" data-stage="integrated"></div>
       </div>
 
+      <!-- ===== 산소: 도입 ===== -->
+      <div class="scene" id="scene-oxy_intro">
+        <div class="card">
+          <div class="scene-head">
+            <img class="mascot mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소" onerror="imgError(this)">
+            <div class="scene-title">
+              <span class="group-badge badge-oxy">산소의 여행</span>
+              <h2>도입 – 크게 들이마셔요! 💨</h2>
+            </div>
+          </div>
+          <p class="scene-desc">
+            체육 시간이 끝나고 숨을 크게 들이마셨어요. 들이마신 공기 속에는 <b>산소(O₂)</b>가 들어 있어요.
+            우리 몸은 <b>호흡</b>으로 산소를 받아들이고, 세포에 전달해 <b>에너지</b>를 만드는 데 씁니다.
+            오늘은 산소 한 알의 눈으로 우리 몸을 여행해 봐요!
+          </p>
+        </div>
+        <div class="card quiz-box" id="quiz-oxy_intro"></div>
+        <div class="scene-nav" data-stage="oxy_intro"></div>
+      </div>
+
+      <!-- ===== 산소: 호흡계 ===== -->
+      <div class="scene" id="scene-oxy_airway">
+        <div class="card">
+          <div class="scene-head">
+            <img class="mascot mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소" onerror="imgError(this)">
+            <div class="scene-title">
+              <span class="group-badge badge-oxy">산소의 여행</span>
+              <h2>호흡계 – 코에서 폐까지</h2>
+            </div>
+          </div>
+          <p class="scene-desc">
+            공기는 <b>코 → 숨관 → 숨관가지 → 폐</b> 순서로 이동해요.
+            버튼을 눌러 산소가 지나가는 길을 따라가 볼까요?
+          </p>
+          <div class="step-track" id="oxy-airway-track">
+            <button class="step-pill oxy on" onclick="oxyAirwayStep(0)">1. 코</button>
+            <button class="step-pill oxy" onclick="oxyAirwayStep(1)">2. 숨관</button>
+            <button class="step-pill oxy" onclick="oxyAirwayStep(2)">3. 숨관가지</button>
+            <button class="step-pill oxy" onclick="oxyAirwayStep(3)">4. 폐</button>
+          </div>
+        </div>
+        <div class="card img-frame">
+          <img src="images/oxygen/Basic Respiratory System Diagram – Front View.png" alt="사람의 호흡 기관 모식도" onerror="imgError(this)">
+          <div class="ring oxy" id="oxy-ring-airway"></div>
+          <div class="ring oxy" id="oxy-ring-airway2"></div>
+        </div>
+        <div class="step-caption oxy" id="oxy-cap-airway"></div>
+        <div class="card quiz-box" id="quiz-oxy_airway"></div>
+        <div class="scene-nav" data-stage="oxy_airway"></div>
+      </div>
+
+      <!-- ===== 산소: 들숨/날숨 ===== -->
+      <div class="scene" id="scene-oxy_breath">
+        <div class="card">
+          <div class="scene-head">
+            <img class="mascot mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소" onerror="imgError(this)">
+            <div class="scene-title">
+              <span class="group-badge badge-oxy">산소의 여행</span>
+              <h2>들숨과 날숨 – 호흡운동의 원리</h2>
+            </div>
+          </div>
+          <p class="scene-desc">
+            <b>갈비뼈</b>와 <b>가로막</b>이 움직이면 흉강의 부피와 압력이 변해서 공기가 드나들어요.
+            두 단계를 눌러 비교해 보세요.
+          </p>
+          <div class="step-track" id="oxy-breath-track">
+            <button class="step-pill oxy on" onclick="oxyBreathStep(0)">1. 들숨 (흡입)</button>
+            <button class="step-pill oxy" onclick="oxyBreathStep(1)">2. 날숨 (호기)</button>
+          </div>
+        </div>
+        <div class="card img-frame">
+          <img src="images/oxygen/Diaphragm Movement – Inhalation and Exhalation.jpg" alt="들숨과 날숨의 비교" onerror="imgError(this)">
+          <div class="ring oxy" id="oxy-ring-breath"></div>
+        </div>
+        <div class="step-caption oxy" id="oxy-cap-breath"></div>
+        <div class="card quiz-box" id="quiz-oxy_breath"></div>
+        <div class="scene-nav" data-stage="oxy_breath"></div>
+      </div>
+
+      <!-- ===== 산소: 허파꽈리 ===== -->
+      <div class="scene" id="scene-oxy_alveoli">
+        <div class="card">
+          <div class="scene-head">
+            <img class="mascot mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소" onerror="imgError(this)">
+            <div class="scene-title">
+              <span class="group-badge badge-oxy">산소의 여행</span>
+              <h2>허파꽈리 – 기체 교환</h2>
+            </div>
+          </div>
+          <p class="scene-desc">
+            폐 속 <b>허파꽈리</b> 주위에는 <b>모세혈관</b>이 둘러싸고 있어요.
+            여기서 산소와 이산화 탄소가 서로 반대 방향으로 이동하는 <b>기체 교환</b>이 일어나요.
+          </p>
+          <div class="step-track" id="oxy-alveoli-track">
+            <button class="step-pill oxy on" onclick="oxyAlveoliStep(0)">1. 산소 → 혈액</button>
+            <button class="step-pill oxy" onclick="oxyAlveoliStep(1)">2. 이산화 탄소 → 허파꽈리</button>
+          </div>
+        </div>
+        <div class="card img-frame">
+          <img src="images/oxygen/Alveolus Close-up – Oxygen and Carbon Dioxide Exchange.png" alt="허파꽈리와 모세혈관의 기체 교환" onerror="imgError(this)">
+          <div class="ring oxy" id="oxy-ring-alveoli"></div>
+        </div>
+        <div class="step-caption oxy" id="oxy-cap-alveoli"></div>
+        <div class="card quiz-box" id="quiz-oxy_alveoli"></div>
+        <div class="scene-nav" data-stage="oxy_alveoli"></div>
+      </div>
+
+      <!-- ===== 산소: 허파순환 ===== -->
+      <div class="scene" id="scene-oxy_pulm">
+        <div class="card">
+          <div class="scene-head">
+            <img class="mascot mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소" onerror="imgError(this)">
+            <div class="scene-title">
+              <span class="group-badge badge-oxy">산소의 여행</span>
+              <h2>허파순환 – 폐 ↔ 심장</h2>
+            </div>
+          </div>
+          <p class="scene-desc">
+            산소가 <b>우심방 → 우심실 → 폐 → 좌심방 → 좌심실 → 온몸</b>으로 도는
+            전체 순환 경로를 따라가 봐요. 산소는 폐에서 받고, 온몸 조직에서 쓰여요.
+          </p>
+          <div class="route-btns">
+            <button type="button" class="route-btn pulm" id="btn-oxy-pulm" aria-controls="oxy-cap-pulm">🔄 허파순환 온몸순환 따라가기</button>
+          </div>
+        </div>
+        <div class="card img-frame">
+          <img src="images/oxygen/Heart and Lungs – Pulmonary Circulation Focus.jpg" alt="허파순환과 온몸순환 경로" onerror="imgError(this)">
+          <div class="ring oxy" id="oxy-ring-pulm"></div>
+          <div class="route-traveler oxy" id="oxy-traveler-pulm" aria-hidden="true">
+            <img class="oxy-main" src="images/oxygen/Oxygen Mascot Character.jpg" alt="">
+            <img class="oxy-twin" src="images/oxygen/Oxygen Mascot Character.jpg" alt="">
+          </div>
+        </div>
+        <div class="step-caption oxy" id="oxy-cap-pulm">버튼을 누르면 경로가 하나씩 표시돼요.</div>
+        <div class="card">
+          <h3 style="margin-bottom:8px">🩸 산소는 적혈구에 실려 이동해요</h3>
+          <div class="img-frame">
+            <img src="images/oxygen/Oxygen Binding to Red Blood Cells.jpg" alt="산소가 적혈구에 결합하는 과정" onerror="imgError(this)">
+          </div>
+        </div>
+        <div class="card quiz-box" id="quiz-oxy_pulm"></div>
+        <div class="scene-nav" data-stage="oxy_pulm"></div>
+      </div>
+
+      <!-- ===== 산소: 온몸순환 ===== -->
+      <div class="scene" id="scene-oxy_systemic">
+        <div class="card">
+          <div class="scene-head">
+            <img class="mascot mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소" onerror="imgError(this)">
+            <div class="scene-title">
+              <span class="group-badge badge-oxy">산소의 여행</span>
+              <h2>온몸순환 – 심장에서 온몸으로</h2>
+            </div>
+          </div>
+          <p class="scene-desc">
+            심장이 산소 가득한 혈액을 <b>온몸</b>으로 내보내요. 조직 세포가 산소를 사용하면,
+            산소가 적어진 혈액은 다시 심장으로 돌아와요.
+          </p>
+          <div class="route-btns">
+            <button type="button" class="route-btn sys" id="btn-oxy-sys" aria-controls="oxy-cap-sys">💪 온몸순환 따라가기</button>
+          </div>
+        </div>
+        <div class="card img-frame">
+          <img src="images/oxygen/Systemic Circulation – Oxygen to the Body.jpg" alt="온몸순환 경로" onerror="imgError(this)">
+          <div class="ring oxy" id="oxy-ring-sys"></div>
+          <div class="route-traveler oxy" id="oxy-traveler-sys" aria-hidden="true"><img src="images/oxygen/Oxygen Mascot Character.jpg" alt=""></div>
+        </div>
+        <div class="step-caption oxy" id="oxy-cap-sys">버튼을 누르면 경로가 하나씩 표시돼요.</div>
+        <div class="card quiz-box" id="quiz-oxy_systemic"></div>
+        <div class="scene-nav" data-stage="oxy_systemic"></div>
+      </div>
+
+      <!-- ===== 산소: 세포호흡 ===== -->
+      <div class="scene" id="scene-oxy_cell">
+        <div class="card">
+          <div class="scene-head">
+            <img class="mascot mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소" onerror="imgError(this)">
+            <div class="scene-title">
+              <span class="group-badge badge-oxy">산소의 여행</span>
+              <h2>세포호흡 – 산소의 최종 역할</h2>
+            </div>
+          </div>
+          <p class="scene-desc">
+            세포 안 <b>미토콘드리아</b>에서, '포도당의 여행'으로 들어온 <b>포도당</b>과
+            지금까지의 여행으로 도착한 <b>산소</b>가 만나 <b>에너지</b>를 만들어요!
+          </p>
+        </div>
+        <div class="card img-frame">
+          <img src="images/oxygen/Cellular Respiration Focused on Oxygen.jpg" alt="산소를 사용한 세포 호흡" onerror="imgError(this)">
+        </div>
+        <div class="oxy-eq">포도당 + 산소 → 이산화 탄소 + 물 + 에너지 ⚡</div>
+        <div class="card quiz-box" id="quiz-oxy_cell"></div>
+        <div class="scene-nav" data-stage="oxy_cell"></div>
+      </div>
+
+      <!-- ===== 산소: 노폐물 배출 ===== -->
+      <div class="scene" id="scene-oxy_waste">
+        <div class="card">
+          <div class="scene-head">
+            <img class="mascot mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소" onerror="imgError(this)">
+            <div class="scene-title">
+              <span class="group-badge badge-oxy">산소의 여행</span>
+              <h2>노폐물 배출 – 이산화 탄소와 물의 여행</h2>
+            </div>
+          </div>
+          <p class="scene-desc">
+            세포호흡이 끝나면 산소는 <b>이산화 탄소</b>와 <b>물</b>로 바뀌었어요.
+            이산화 탄소는 <b>호흡계(폐 → 날숨)</b>으로, 물과 요소 등은 <b>배설계(콩팥 → 오줌)</b>으로 나가요.
+          </p>
+        </div>
+        <div class="card img-frame">
+          <img src="images/oxygen/Carbon Dioxide Leaving via Lungs.jpg" alt="이산화 탄소의 이동 경로" onerror="imgError(this)">
+        </div>
+        <div class="card img-frame">
+          <img src="images/oxygen/Water and Wastes Leaving via Kidneys.jpg" alt="세포 호흡과 콩팥 배설의 연결" onerror="imgError(this)">
+        </div>
+        <div class="card quiz-box" id="quiz-oxy_waste"></div>
+        <div class="scene-nav" data-stage="oxy_waste"></div>
+      </div>
+
+      <!-- ===== 산소: 통합 정리 ===== -->
+      <div class="scene" id="scene-oxy_joint">
+        <div class="card">
+          <div class="scene-head">
+            <img class="mascot mascot-o2" src="images/oxygen/Oxygen Mascot Character.jpg" alt="산소" onerror="imgError(this)">
+            <div class="scene-title">
+              <span class="group-badge" style="background:#0ca678">두 여행의 만남</span>
+              <h2>통합 정리 – 포도당과 산소가 만나서</h2>
+            </div>
+          </div>
+          <p class="scene-desc">
+            <b>포도당의 여행</b>과 <b>산소의 여행</b>, 두 여행의 주인공은 드디어 세포의 미토콘드리아에서 만났어요!
+            <br><b>포도당 + 산소 → 이산화 탄소 + 물 + 에너지</b> — 소화·순환·호흡·배설 네 기관계가 함께 일한 결과예요.
+          </p>
+        </div>
+        <div class="card img-frame">
+          <img src="images/포도당의 여행 통합 경로 지도.jpg" alt="포도당의 여행 통합 경로 지도" onerror="imgError(this)">
+        </div>
+        <div class="oxy-eq">🍜 포도당(혈장) + 💨 산소(적혈구) → ⚡ 에너지 + 🌫️ 이산화 탄소 + 💧 물</div>
+        <div class="card">
+          <h3 style="margin-bottom:10px">🗺️ 두 여행 복습 카드 <small style="color:var(--sub);font-weight:600">(카드를 누르면 그 장면으로 이동해요)</small></h3>
+          <div class="recap-grid">
+            <button class="recap-card rc-intro" onclick="showScene('intro')"><span class="rc-title">🍜 포도당 · 도입</span><span class="rc-text">떡볶이 속 탄수화물(녹말)이 포도당으로 바뀌어요.</span></button>
+            <button class="recap-card rc-digest" onclick="showScene('digest')"><span class="rc-title">🍽️ 포도당 · 소화</span><span class="rc-text">입(아밀레이스)→위(펩신, 단백질만)→작은창자(이자액·쓸개즙)에서 분해돼요.</span></button>
+            <button class="recap-card rc-absorb" onclick="showScene('absorb')"><span class="rc-title">🧽 포도당 · 흡수</span><span class="rc-text">융털 상피세포를 지나 모세혈관으로 들어가 간문맥으로 간에 들러요.</span></button>
+            <button class="recap-card rc-circ" onclick="showScene('circulate')"><span class="rc-title">❤️ 순환</span><span class="rc-text">포도당은 혈장에, 산소는 적혈구에 실려 이동해요.</span></button>
+            <button class="recap-card rc-breathe" onclick="showScene('oxy_airway')"><span class="rc-title" style="color:#a5d8ff">💨 산소 · 호흡계</span><span class="rc-text">코 → 숨관 → 숨관가지 → 폐로 들어가요.</span></button>
+            <button class="recap-card rc-breathe" onclick="showScene('oxy_alveoli')"><span class="rc-title" style="color:#a5d8ff">🫁 산소 · 허파꽈리</span><span class="rc-text">산소는 혈액(적혈구)으로, 이산화 탄소는 허파꽈리로 나가요.</span></button>
+            <button class="recap-card rc-cell" onclick="showScene('oxy_cell')"><span class="rc-title">⚡ 세포호흡</span><span class="rc-text">포도당 + 산소 → 이산화 탄소 + 물 + 에너지</span></button>
+            <button class="recap-card rc-excrete" onclick="showScene('oxy_waste')"><span class="rc-title">💧 배설</span><span class="rc-text">이산화 탄소는 날숨으로, 물·요소는 콩팥에서 오줌으로 나가요.</span></button>
+          </div>
+        </div>
+        <div class="card quiz-box" id="quiz-oxy_joint"></div>
+        <div class="scene-nav" data-stage="oxy_joint"></div>
+      </div>
+
       <!-- ===== 결과 ===== -->
       <div class="scene" id="scene-results">
         <div class="card">
@@ -732,7 +1065,28 @@ var STAGES = [
   { id: "excrete",    name: "배설",   group: "호흡과 배설" },
   { id: "integrated", name: "통합",   group: "기관계의 통합" }
 ];
-var STAGE_ORDER = ["home"].concat(STAGES.map(function (s) { return s.id; })).concat(["results"]);
+var OXY_STAGES = [
+  { id: "oxy_intro",    name: "도입",       group: "산소의 여행" },
+  { id: "oxy_airway",   name: "호흡계",     group: "산소의 여행" },
+  { id: "oxy_breath",   name: "들숨·날숨",  group: "산소의 여행" },
+  { id: "oxy_alveoli",  name: "허파꽈리",   group: "산소의 여행" },
+  { id: "oxy_pulm",     name: "허파순환",   group: "산소의 여행" },
+  { id: "oxy_systemic", name: "온몸순환",   group: "산소의 여행" },
+  { id: "oxy_cell",     name: "세포호흡",   group: "산소의 여행" },
+  { id: "oxy_waste",    name: "노폐물",     group: "산소의 여행" },
+  { id: "oxy_joint",    name: "통합 정리",  group: "두 여행의 만남" }
+];
+var ALL_STAGES = STAGES.concat(OXY_STAGES);
+var STAGE_ORDER = ["home"].concat(ALL_STAGES.map(function (s) { return s.id; })).concat(["results"]);
+var COURSES = {
+  glucose: { name: "포도당의 여행", stages: STAGES.map(function (s) { return s.id; }),
+    quizTotal: 9, doneStages: ["intro", "digest", "absorb", "circulate", "breathe", "excrete", "integrated"],
+    quizMap: { intro: ["intro"], digest: ["digest0", "digest1", "digest2"], absorb: ["absorb"], circulate: ["circulate"], breathe: ["breathe0", "breathe1"], excrete: ["excrete"], integrated: [] } },
+  oxygen: { name: "산소의 여행", stages: OXY_STAGES.map(function (s) { return s.id; }),
+    quizTotal: 9, doneStages: OXY_STAGES.map(function (s) { return s.id; }),
+    quizMap: { oxy_intro: ["oxy_intro"], oxy_airway: ["oxy_airway"], oxy_breath: ["oxy_breath"], oxy_alveoli: ["oxy_alveoli"], oxy_pulm: ["oxy_pulm"], oxy_systemic: ["oxy_systemic"], oxy_cell: ["oxy_cell"], oxy_waste: ["oxy_waste"], oxy_joint: ["oxy_joint"] } }
+};
+function courseStages(c) { return COURSES[c] ? COURSES[c].stages : []; }
 
 /* ---------- 기관 정보 (SKILL.MD 10절 텍스트 기반) ----------
    좌표는 정면 인체 실루엣.jpg(1024x1536) 픽셀 분석 결과에 근거:
@@ -826,9 +1180,74 @@ var QUIZZES = {
     keywords: ["재흡수", "세뇨관"],
     good: "훌륭해요! 포도당은 세뇨관에서 혈액으로 모두(100%) 재흡수되기 때문에, 건강한 사람의 오줌에서는 검출되지 않아요.",
     bad: "조금만 더 생각해 볼까요? 힌트: 여과된 포도당은 오줌으로 나가지 않고, 세뇨관에서 다시 혈액으로 ○○수돼요!"
+  },
+  oxy_intro: {
+    label: "산소 · 들이마신 공기", type: "ox",
+    q: "Q. 우리가 들이마시는 공기 속에는 산소가 들어 있다 (O/X)?",
+    answer: "O",
+    good: "정답! 공기 중의 산소가 호흡을 통해 우리 몸으로 들어와요. 들숨과 날숨 중 들숨 때 산소가 몸 안으로 더 많이 들어와요.",
+    bad: "아쉬워요! 공기 속에는 산소가 들어 있고, 우리는 호흡(들이마시기)으로 산소를 받아들여요."
+  },
+  oxy_airway: {
+    label: "산소 · 호흡계 길", type: "mcq",
+    q: "Q. 코로 들어온 공기가 폐에 도달하기까지 올바른 길 순서는?",
+    choices: ["코 → 숨관 → 숨관가지 → 폐", "코 → 숨관가지 → 숨관 → 폐", "코 → 폐 → 숨관가지 → 숨관", "코 → 가로막 → 숨관 → 폐"], answer: 0,
+    good: "정답! 공기는 코에서 따뜻하고 촉촉하게 정화된 뒤, 숨관 → 숨관가지를 지나 폐에 도달해요.",
+    bad: "다시 볼까요? 가로막은 호흡운동에 쓰이는 근육이에요. 공기의 길은 코 → 숨관 → 숨관가지 → 폐 순서예요!"
+  },
+  oxy_breath: {
+    label: "산소 · 들숨의 원리", type: "mcq",
+    q: "Q. 들숨(흡입) 때 갈비뼈와 가로막은 어떻게 움직일까요?",
+    choices: ["갈비뼈는 올라가고, 가로막은 아래로 내려가 평평해진다", "갈비뼈는 내려가고, 가로막은 위로 올라가 둥글어진다", "갈비뼈와 가로막이 모두 아래로 내려간다", "갈비뼈와 가로막이 움직이지 않는다"], answer: 0,
+    good: "정답! 들숨 때는 갈비뼈가 올라가고 가로막이 내려가 흉강 부피가 커지고 압력이 줄어 공기가 폐로 들어와요.",
+    bad: "다시 볼까요? '날숨'이 갈비뼈 내려감 + 가로막 올라감이에요. 들숨은 반대! 부피가 커지고 압력이 줄어야 공기가 들어와요."
+  },
+  oxy_alveoli: {
+    label: "산소 · 기체 교환", type: "mcq",
+    q: "Q. 허파꽈리에서 일어나는 기체 교환에 대한 설명으로 옳은 것은?",
+    choices: ["산소는 혈액으로 들어가고, 이산화 탄소는 허파꽈리로 나온다", "산소와 이산화 탄소가 모두 혈액으로 들어간다", "산소는 허파꽈리로 나가고, 이산화 탄소는 혈액으로 들어간다", "허파꽈리에서는 기체 교환이 일어나지 않는다"], answer: 0,
+    good: "정답! 허파꽈리 공기 속 산소는 모세혈관으로 들어가 적혈구에 실리고, 혈액 속 이산화 탄소는 허파꽈리로 나와 날숨으로 배출돼요.",
+    bad: "다시 볼까요? 산소는 '몸 안으로', 이산화 탄소는 '몸 밖으로' — 서로 반대 방향으로 이동해요!"
+  },
+  oxy_pulm: {
+    label: "산소 · 허파순환", type: "mcq",
+    q: "Q. 허파순환에서 폐에서 산소를 받은 혈액이 심장의 어디로 돌아올까요?",
+    choices: ["좌심방", "우심방", "좌심실", "우심실"], answer: 0,
+    good: "정답! 산소를 받은 혈액은 폐정맥을 따라 심장의 좌심방으로 돌아오고, 좌심실이 온몸으로 내보내요.",
+    bad: "다시 볼까요? 폐에서 돌아온 산소 가득한 혈액은 좌심방 → 좌심실로 가서 온몸으로 나가요. 우심방은 산소가 적은 혈액이 돌아오는 곳이에요!"
+  },
+  oxy_systemic: {
+    label: "산소 · 온몸순환", type: "ox",
+    q: "Q. 산소는 적혈구에 실려 온몸의 조직 세포로 이동한다 (O/X)?",
+    answer: "O",
+    good: "정답! 산소는 적혈구에 실려 이동하고, 포도당 같은 영양소는 혈장에 녹아 이동해요.",
+    bad: "아쉬워요! 산소의 특별한 좌석은 바로 '적혈구'예요. 포도당은 혈장에 녹아 이동하고요!"
+  },
+  oxy_cell: {
+    label: "산소 · 세포호흡식", type: "text",
+    q: "Q. 세포호흡 식의 빈칸에 들어갈 물질을 써 보세요. → 포도당 + (  ) → 이산화 탄소 + 물 + 에너지",
+    keywords: ["산소", "O2", "O₂"],
+    good: "정답! 미토콘드리아에서 포도당이 산소와 반응해 에너지를 만들어요. 산소의 여행이 여기서 끝나는 이유죠!",
+    bad: "힌트를 볼까요? 우리가 '들이마신' 그 물질이에요. 포도당과 만나 에너지를 만드는 기체!"
+  },
+  oxy_waste: {
+    label: "산소 · 노폐물의 길", type: "mcq",
+    q: "Q. 세포호흡으로 만들어진 이산화 탄소가 몸 밖으로 나가는 경로는?",
+    choices: ["폐 → 날숨", "콩팥 → 오줌", "피부 → 땀", "간 → 담즙"], answer: 0,
+    good: "정답! 이산화 탄소는 혈액을 타고 폐로 돌아와 허파꽈리 → 기도 → 날숨으로 나가요. 물과 요소는 콩팥 → 오줌으로 나가고요!",
+    bad: "다시 볼까요? 콩팥 → 오줌 길은 '물과 요소'가 지나는 길이에요. 기체인 이산화 탄소는 숨으로 나가요!"
+  },
+  oxy_joint: {
+    label: "통합 · 두 여행의 만남", type: "text",
+    q: "Q. 세포호흡으로 만들어지는 물질 두 가지를 써 보세요. (예: ○○ 탄소, ○)",
+    keywords: ["이산화 탄소", "이산화탄소"],
+    good: "완벽해요! 포도당과 산소의 여행이 만나 에너지를 만들고, 이산화 탄소와 물이 남아요. 이산화 탄소는 날숨으로, 물은 콩팥 → 오줌으로 나가요.",
+    bad: "힌트! 세포호흡 식의 화살표(→) 뒤에 있는 물질들이에요. '이산화 ○○'가 꼭 들어가야 해요!"
   }
 };
 var QUIZ_ORDER = ["intro", "digest0", "digest1", "digest2", "absorb", "circulate", "breathe0", "breathe1", "excrete"];
+var OXY_QUIZ_ORDER = ["oxy_intro", "oxy_airway", "oxy_breath", "oxy_alveoli", "oxy_pulm", "oxy_systemic", "oxy_cell", "oxy_waste", "oxy_joint"];
+function quizOrderFor(course) { return course === "oxygen" ? OXY_QUIZ_ORDER : QUIZ_ORDER; }
 
 /* ---------- 학습 상태 (localStorage + 메모리 대체) ---------- */
 var STORE_KEY = "journey_of_glucose_v1";
@@ -840,6 +1259,7 @@ function defaultState() {
     done: {},        // stageId -> true
     dragDone: false, // 흡수 드래그 성공
     time: {},        // stageId -> 초
+    course: null,    // 현재 선택한 코스: "glucose" | "oxygen"
     last: "intro"
   };
 }
@@ -865,19 +1285,40 @@ var saveTimer = null;
 /* =====================================================================
    화면 전환
    ===================================================================== */
+function renderHeader() {
+  var img = $("#logo-img"), title = $("#logo-title");
+  if (!img || !title) return;
+  if (currentScene !== "home" && state.course === "oxygen") {
+    img.src = "images/oxygen/Oxygen Mascot Character.jpg";
+    img.classList.add("mascot-o2-logo");
+    title.innerHTML = '산소의 여행<small>들이마신 산소가 세포로</small>';
+  } else if (currentScene !== "home" && state.course === "glucose") {
+    img.src = "images/포도당_기본.jpg";
+    img.classList.remove("mascot-o2-logo");
+    title.innerHTML = '포도당의 여행<small>떡볶이에서 에너지까지</small>';
+  } else {
+    img.src = "images/포도당_기본.jpg";
+    img.classList.remove("mascot-o2-logo");
+    title.innerHTML = '우리 몸 속 여행하기<small>포도당 · 산소 코스</small>';
+  }
+}
+
 function showScene(id) {
   /* 순환 애니메이션 도중 다른 장면으로 이동해도 타이머와 비활성 버튼이 남지 않도록 정리 */
   if (currentScene === "circulate" && id !== "circulate") stopRouteAnimation(false);
+  if ((currentScene === "oxy_pulm" || currentScene === "oxy_systemic") && id !== currentScene) stopOxyRoute(false);
   document.querySelectorAll(".scene").forEach(function (el) { el.classList.remove("active"); });
   var target = $("#scene-" + id);
   if (target) target.classList.add("active");
   currentScene = id;
   state.last = STAGE_ORDER.indexOf(id) > -1 ? id : state.last;
+  renderHeader();
   renderDots();
   updateBodyHighlight();
   window.scrollTo({ top: 0, behavior: "smooth" });
 
   /* 장면별 초기화 */
+  if (id === "home") renderHomeCards();
   if (id === "intro") renderQuiz("quiz-intro", "intro");
   if (id === "digest") { digestStep(state.quiz.digest2 === "correct" ? 2 : (state.quiz.digest1 === "correct" ? 1 : 0)); }
   if (id === "absorb") { renderQuiz("quiz-absorb", "absorb"); if (state.dragDone) $("#absorb-done").classList.add("show"); }
@@ -889,12 +1330,21 @@ function showScene(id) {
   if (id === "excrete") renderQuiz("quiz-excrete", "excrete");
   if (id === "integrated") { if (!state.done.integrated) { state.done.integrated = true; saveState(); renderDots(); } }
   if (id === "results") renderResults();
+  if (id === "oxy_intro") renderQuiz("quiz-oxy_intro", "oxy_intro");
+  if (id === "oxy_airway") { oxyAirwayStep(state.quiz.oxy_airway === "correct" ? OXY_AIRWAY_STEPS.length - 1 : 0); renderQuiz("quiz-oxy_airway", "oxy_airway"); }
+  if (id === "oxy_breath") { oxyBreathStep(state.quiz.oxy_breath === "correct" ? 1 : 0); renderQuiz("quiz-oxy_breath", "oxy_breath"); }
+  if (id === "oxy_alveoli") { oxyAlveoliStep(state.quiz.oxy_alveoli === "correct" ? 1 : 0); renderQuiz("quiz-oxy_alveoli", "oxy_alveoli"); }
+  if (id === "oxy_pulm") { stopOxyRoute(true); renderQuiz("quiz-oxy_pulm", "oxy_pulm"); }
+  if (id === "oxy_systemic") { stopOxyRoute(true); renderQuiz("quiz-oxy_systemic", "oxy_systemic"); }
+  if (id === "oxy_cell") renderQuiz("quiz-oxy_cell", "oxy_cell");
+  if (id === "oxy_waste") renderQuiz("quiz-oxy_waste", "oxy_waste");
+  if (id === "oxy_joint") { renderOxyJoint(); }
   toggleSidebar(false);
 
   /* 학습 시간 기록 */
   clearInterval(timeTimer);
   clearInterval(saveTimer);
-  if (STAGES.some(function (s) { return s.id === id; })) {
+  if (ALL_STAGES.some(function (s) { return s.id === id; })) {
     timeTimer = setInterval(function () {
       state.time[id] = (state.time[id] || 0) + 1;
     }, 1000);
@@ -902,21 +1352,66 @@ function showScene(id) {
   }
 }
 
-function startNew() {
-  state = defaultState();
-  saveState();
-  showScene("intro");
+function isStageDone(course, id) {
+  var q = COURSES[course] && COURSES[course].quizMap[id];
+  if (q && q.length) return q.every(function (k) { return state.quiz[k] === "correct"; });
+  return !!state.done[id];
 }
-function continueJourney() { showScene(state.last || "intro"); }
+function courseCorrectCount(course) {
+  var n = 0;
+  COURSES[course].quizMap && Object.keys(COURSES[course].quizMap).forEach(function (st) {
+    COURSES[course].quizMap[st].forEach(function (k) { if (state.quiz[k] === "correct") n++; });
+  });
+  return n;
+}
+function courseComplete(course) {
+  return courseCorrectCount(course) >= COURSES[course].quizTotal;
+}
+function firstIncompleteStage(course) {
+  var stages = COURSES[course].stages;
+  for (var i = 0; i < stages.length; i++) {
+    if (!isStageDone(course, stages[i])) return stages[i];
+  }
+  return stages[stages.length - 1];
+}
+function startCourse(course) {
+  state.course = course;
+  saveState();
+  renderDots();
+  showScene(firstIncompleteStage(course));
+}
+function renderHomeCards() {
+  [["glucose", "cc-progress-glucose", "cc-btn-glucose", "🚗 여행 시작하기", "▶ 이어하기"],
+   ["oxygen", "cc-progress-oxygen", "cc-btn-oxygen", "💨 여행 시작하기", "▶ 이어하기"]].forEach(function (row) {
+    var c = row[0], pEl = $("#" + row[1]), bEl = $("#" + row[2]);
+    if (!pEl || !bEl) return;
+    var n = courseCorrectCount(c), total = COURSES[c].quizTotal;
+    pEl.textContent = "퀴즈 " + n + "/" + total + " 완료";
+    bEl.textContent = (n > 0) ? row[4] : row[3];
+  });
+  var notice = $("#integrated-notice");
+  if (!notice) return;
+  if (courseComplete("glucose") && courseComplete("oxygen")) {
+    notice.className = "integrated-open";
+    notice.innerHTML = '🎉 두 코스 완주! <b>통합 정리</b>가 열렸어요. <button class="btn btn-primary btn-sm" onclick="startCourse(\'oxygen\')">통합 정리로 가기</button>';
+  } else {
+    notice.className = "integrated-locked";
+    notice.innerHTML = '🔒 <b>통합 정리</b>는 두 코스의 퀴즈를 모두 풀면 열려요. 포도당과 산소가 만나 세포호흡으로 에너지를 만드는 장면이에요!';
+  }
+}
 
 function renderDots() {
   var nav = $("#stage-dots");
   nav.innerHTML = "";
-  STAGES.forEach(function (s) {
+  if (!state.course || currentScene === "home") return;
+  COURSES[state.course].stages.forEach(function (id) {
+    var meta = null;
+    ALL_STAGES.forEach(function (s) { if (s.id === id) meta = s; });
+    if (!meta) return;
     var b = document.createElement("button");
-    b.className = "stage-dot" + (currentScene === s.id ? " active" : "") + (state.done[s.id] ? " done" : "");
-    b.textContent = (state.done[s.id] ? "✓ " : "") + s.name;
-    b.onclick = function () { showScene(s.id); };
+    b.className = "stage-dot" + (currentScene === id ? " active" : "") + (state.done[id] ? " done" : "");
+    b.textContent = (state.done[id] ? "✓ " : "") + meta.name;
+    b.onclick = function () { showScene(id); };
     nav.appendChild(b);
   });
 }
@@ -925,9 +1420,10 @@ function renderDots() {
 function renderSceneNav() {
   document.querySelectorAll(".scene-nav").forEach(function (nav) {
     var stage = nav.getAttribute("data-stage");
-    var idx = STAGE_ORDER.indexOf(stage);
-    var prev = STAGE_ORDER[idx - 1];
-    var next = STAGE_ORDER[idx + 1];
+    var list = ["home"].concat(courseStages(stage.indexOf("oxy_") === 0 ? "oxygen" : "glucose"));
+    var idx = list.indexOf(stage);
+    var prev = list[idx - 1];
+    var next = list[idx + 1];
     nav.innerHTML = "";
     if (prev) {
       var bp = document.createElement("button");
@@ -938,14 +1434,21 @@ function renderSceneNav() {
     if (next) {
       var bn = document.createElement("button");
       bn.className = "btn btn-primary btn-sm";
-      /* 소화·호흡 장면: ①→②→③ 순서로 모두 확인해야 다음 장면으로 넘어가도록 안내 */
-      var gateDigest = stage === "digest" && typeof digestCurrent === "number" && digestCurrent < DIGEST_STEPS.length - 1;
-      var gateBreathe = stage === "breathe" && typeof breatheCurrent === "number" && breatheCurrent < BREATHE_STEPS.length - 1;
-      if (gateDigest || gateBreathe) {
+      /* 소화·호흡·산소 단계 장면: ①→②→③ 순서로 모두 확인해야 다음 장면으로 넘어가도록 안내 */
+      var stepGate =
+        (stage === "digest" && typeof digestCurrent === "number" && digestCurrent < DIGEST_STEPS.length - 1) ||
+        (stage === "breathe" && typeof breatheCurrent === "number" && breatheCurrent < BREATHE_STEPS.length - 1) ||
+        (stage === "oxy_airway" && oxyAirwayCurrent < OXY_AIRWAY_STEPS.length - 1) ||
+        (stage === "oxy_breath" && oxyBreathCurrent < OXY_BREATH_STEPS.length - 1) ||
+        (stage === "oxy_alveoli" && oxyAlveoliCurrent < OXY_ALVEOLI_STEPS.length - 1);
+      if (stepGate) {
         bn.textContent = "다음 단계 →";
         bn.onclick = function () {
           if (stage === "digest") digestStep(digestCurrent + 1);
-          else breatheStep(breatheCurrent + 1);
+          else if (stage === "breathe") breatheStep(breatheCurrent + 1);
+          else if (stage === "oxy_airway") oxyAirwayStep(oxyAirwayCurrent + 1);
+          else if (stage === "oxy_breath") oxyBreathStep(oxyBreathCurrent + 1);
+          else oxyAlveoliStep(oxyAlveoliCurrent + 1);
         };
       } else {
         bn.textContent = stageName(next) + " →";
@@ -958,7 +1461,8 @@ function renderSceneNav() {
 function stageName(id) {
   if (id === "home") return "홈";
   if (id === "results") return "학습 결과";
-  var s = STAGES.find(function (x) { return x.id === id; });
+  var s = null;
+  ALL_STAGES.forEach(function (x) { if (x.id === id) s = x; });
   return s ? s.name : id;
 }
 
@@ -1087,6 +1591,9 @@ function checkStageComplete() {
   if (state.quiz.circulate === "correct") state.done.circulate = true;
   if (["breathe0", "breathe1"].every(function (k) { return state.quiz[k] === "correct"; })) state.done.breathe = true;
   if (state.quiz.excrete === "correct") state.done.excrete = true;
+  OXY_QUIZ_ORDER.forEach(function (k) {
+    if (state.quiz[k] === "correct") state.done[k] = true;
+  });
 }
 
 /* =====================================================================
@@ -1326,6 +1833,142 @@ function breatheStep(i) {
 }
 
 /* =====================================================================
+   산소 코스 (단계 이동 + 경로 애니메이션)
+   ===================================================================== */
+var OXY_AIRWAY_STEPS = [
+  { organ: "mouth", ring: [35, 29], cap: "<span class='cap-num'>① 코</span> 공기가 코로 들어오면서 <b>따뜻하고 촉촉해지고</b>, 먼지는 걸러져요." },
+  { organ: "lungs", ring: [54, 44], cap: "<span class='cap-num'>② 숨관</span> 숨관의 <b>점액과 섬모</b>가 남은 먼지를 잡아내고, 공기를 폐 쪽으로 내려보내요." },
+  { organ: "lungs", ring: [53, 59], cap: "<span class='cap-num'>③ 숨관가지</span> 숨관이 두 갈래 <b>숨관가지</b>로 갈라져 폐 속 깊이 들어가요." },
+  { organ: "lungs", ring: [41, 70], ring2: [68, 70], cap: "<span class='cap-num'>④ 폐</span> 폐는 <b>두 개</b>예요! 양쪽 폐 끝의 <b>허파꽈리</b>에 도착했어요. 여기서 산소가 혈액으로 들어가요." }
+];
+var OXY_BREATH_STEPS = [
+  { ring: [26, 45], cap: "<span class='cap-num'>① 들숨 (흡입)</span> 갈비뼈가 <b>올라가고</b>, 가로막이 <b>아래로 내려가 평평해져요</b>. 흉강 부피가 커지고 압력이 줄어 <b>공기가 폐로 들어와요</b>." },
+  { ring: [74, 45], cap: "<span class='cap-num'>② 날숨 (호기)</span> 갈비뼈가 <b>내려가고</b>, 가로막이 <b>위로 올라가 둥글어져요</b>. 흉강 부피가 줄고 압력이 커져 <b>공기가 밖으로 나가요</b>." }
+];
+var OXY_ALVEOLI_STEPS = [
+  { ring: [70, 50], cap: "<span class='cap-num'>① 산소 (O₂)</span> 허파꽈리 공기 속 산소가 모세혈관으로 나아가 <b>적혈구</b>에 실려 이동해요." },
+  { ring: [25, 50], cap: "<span class='cap-num'>② 이산화 탄소 (CO₂)</span> 혈액 속 이산화 탄소가 허파꽈리로 나와 <b>날숨</b>으로 몸 밖으로 배출돼요." }
+];
+var oxyAirwayCurrent = 0;
+var oxyBreathCurrent = 0;
+var oxyAlveoliCurrent = 0;
+
+function oxyStepMove(i, steps, ringId, capId, trackSel, currentSetter, ring2Id) {
+  var st = steps[i];
+  var ring = $(ringId);
+  ring.style.left = st.ring[0] + "%";
+  ring.style.top = st.ring[1] + "%";
+  ring.classList.add("show");
+  if (ring2Id) {
+    var ring2 = $(ring2Id);
+    if (st.ring2) {
+      ring2.style.left = st.ring2[0] + "%";
+      ring2.style.top = st.ring2[1] + "%";
+      ring2.classList.add("show");
+    } else {
+      ring2.classList.remove("show");
+    }
+  }
+  $(capId).innerHTML = st.cap;
+  document.querySelectorAll(trackSel + " .step-pill").forEach(function (p, j) {
+    p.classList.toggle("on", j === i);
+    p.classList.toggle("done", j < i);
+  });
+  currentSetter(i);
+  highlightOrgan(st.organ || null);
+  renderSceneNav();
+}
+function oxyAirwayStep(i) { oxyStepMove(i, OXY_AIRWAY_STEPS, "#oxy-ring-airway", "#oxy-cap-airway", "#oxy-airway-track", function (v) { oxyAirwayCurrent = v; }, "#oxy-ring-airway2"); }
+function oxyBreathStep(i) { oxyStepMove(i, OXY_BREATH_STEPS, "#oxy-ring-breath", "#oxy-cap-breath", "#oxy-breath-track", function (v) { oxyBreathCurrent = v; }); }
+function oxyAlveoliStep(i) { oxyStepMove(i, OXY_ALVEOLI_STEPS, "#oxy-ring-alveoli", "#oxy-cap-alveoli", "#oxy-alveoli-track", function (v) { oxyAlveoliCurrent = v; }); }
+
+var OXY_ROUTES = {
+  pulm: {
+    btn: "#btn-oxy-pulm", ring: "#oxy-ring-pulm", traveler: "#oxy-traveler-pulm", cap: "#oxy-cap-pulm",
+    steps: [
+      { ring: [41, 58], cap: "<span class='cap-num'>① 우심방</span> 온몸에서 돌아온 <b>산소가 적은 혈액</b>이 모여 있는 곳이에요. 여기서 산소의 여행이 다시 시작돼요!" },
+      { ring: [52, 69], cap: "<span class='cap-num'>② 우심실</span> 혈액을 받아 <b>폐동맥</b>으로 내보내요." },
+      { ring: [30, 34], cap: "<span class='cap-num'>③ 폐동맥</span> 산소가 적은 혈액을 <b>폐</b>로 운반해요." },
+      { ring: [15, 36], oxy2: true, cap: "<span class='cap-num'>④ 폐 (왼쪽)</span> 허파꽈리에서 이산화 탄소를 내려놓고 <b>산소(O₂)를 받았어요</b>. 산소가 <b>2개</b>로 불어났네요!" },
+      { ring: [24, 44], oxy2: true, cap: "<span class='cap-num'>⑤ 폐정맥</span> <b>산소 2개를 실은 혈액</b>이 심장으로 돌아가요." },
+      { ring: [54, 47], oxy2: true, cap: "<span class='cap-num'>⑥ 좌심방</span> 산소 가득한 혈액이 심장으로 들어와요." },
+      { ring: [59, 68], oxy2: true, cap: "<span class='cap-num'>⑦ 좌심실</span> 심장에서 가장 두꺼운 벽! 혈액을 <b>온몸으로</b> 힘차게 내보내요." },
+      { ring: [67, 63], oxy2: true, cap: "<span class='cap-num'>⑧ 대동맥</span> 산소 가득한 혈액이 <b>온몸</b>으로 향하는 큰 길이에요." },
+      { ring: [53, 91], oxy2: true, cap: "<span class='cap-num'>⑨ 온몸 모세혈관</span> 조직 세포에 <b>산소를 전달</b>하고, 이산화 탄소를 받아요." },
+      { ring: [39, 82], cap: "<span class='cap-num'>⑩ 하대정맥</span> 산소를 전달하고 <b>1개</b>가 된 산소가 다시 심장(<b>우심방</b>)으로 돌아와요. — 순환 완성!" }
+    ]
+  },
+  sys: {
+    btn: "#btn-oxy-sys", ring: "#oxy-ring-sys", traveler: "#oxy-traveler-sys", cap: "#oxy-cap-sys",
+    steps: [
+      { ring: [50, 47], cap: "<span class='cap-num'>①</span> 심장(좌심실)이 <b>산소 가득한 혈액</b>을 온몸으로 내보내요. (대동맥)" },
+      { ring: [51, 24], cap: "<span class='cap-num'>②</span> 머리·팔·다리 <b>조직 세포</b>에 산소를 전달해요. 산소는 적혈구에 실려 이동해요." },
+      { ring: [73, 52], cap: "<span class='cap-num'>③</span> 산소를 내어준 혈액은 정맥을 따라 다시 심장(<b>우심방</b>)으로 돌아와요. — 이것이 <b>온몸순환</b>!" }
+    ]
+  }
+};
+var oxyRouteTimer = null;
+function stopOxyRoute(resetCaption) {
+  if (oxyRouteTimer) { clearTimeout(oxyRouteTimer); oxyRouteTimer = null; }
+  Object.keys(OXY_ROUTES).forEach(function (k) {
+    var r = OXY_ROUTES[k];
+    var btn = $(r.btn);
+    if (btn) { btn.disabled = false; }
+  });
+  var rings = document.querySelectorAll("#oxy-ring-pulm, #oxy-ring-sys");
+  var travelers = document.querySelectorAll("#oxy-traveler-pulm, #oxy-traveler-sys");
+  rings.forEach(function (el) { el.classList.remove("show"); });
+  travelers.forEach(function (el) { el.classList.remove("show"); el.classList.remove("duo"); });
+  if (resetCaption) {
+    $("#oxy-cap-pulm").textContent = "버튼을 누르면 경로가 하나씩 표시돼요.";
+    $("#oxy-cap-sys").textContent = "버튼을 누르면 경로가 하나씩 표시돼요.";
+  }
+}
+function initOxyRoutes() {
+  Object.keys(OXY_ROUTES).forEach(function (k) {
+    var btn = $(OXY_ROUTES[k].btn);
+    if (btn) btn.addEventListener("click", function () { playOxyRoute(k); });
+  });
+}
+function playOxyRoute(key) {
+  var r = OXY_ROUTES[key];
+  if (!r) return;
+  stopOxyRoute(false);
+  $(r.btn).disabled = true;
+  var i = 0;
+  function step() {
+    if (i >= r.steps.length) {
+      stopOxyRoute(false);
+      $(r.cap).innerHTML = key === "pulm"
+        ? "🔄 <b>허파순환 + 온몸순환</b>: 산소는 폐에서 받아 심장을 거쳐 온몸으로 전달되고, 산소가 적어진 혈액은 다시 심장(우심방)으로 돌아와요."
+        : "💪 <b>온몸순환</b>: 심장 ↔ 온몸 사이의 순환으로 <b>산소를 전달</b>하고 이산화 탄소를 받아와요.";
+      return;
+    }
+    var s = r.steps[i];
+    var ring = $(r.ring), traveler = $(r.traveler);
+    ring.style.left = s.ring[0] + "%"; ring.style.top = s.ring[1] + "%"; ring.classList.add("show");
+    if (traveler) {
+      traveler.style.left = s.ring[0] + "%"; traveler.style.top = s.ring[1] + "%"; traveler.classList.add("show");
+      traveler.classList.toggle("duo", !!s.oxy2);
+    }
+    $(r.cap).innerHTML = s.cap;
+    i++;
+    oxyRouteTimer = setTimeout(step, 2200);
+  }
+  step();
+}
+
+function renderOxyJoint() {
+  var box = $("#quiz-oxy_joint");
+  if (courseComplete("glucose") && courseComplete("oxygen")) {
+    renderQuiz("quiz-oxy_joint", "oxy_joint");
+  } else {
+    box.innerHTML = '<div class="integrated-locked" style="margin-top:0">🔒 두 코스의 퀴즈를 모두 풀면 나타나는 통합 문제예요! 포도당 코스: ' +
+      courseCorrectCount("glucose") + '/9 · 산소 코스: ' + courseCorrectCount("oxygen") + '/9</div>';
+  }
+}
+
+/* =====================================================================
    인체 모형 패널
    ===================================================================== */
 /* 내부 축약명(digest 등) → 표준 data-system 값 매핑 */
@@ -1355,10 +1998,12 @@ function highlightOrgan(key) {
   });
 }
 function updateBodyHighlight() {
-  var map = { intro: "mouth", absorb: "smallIntestine", circulate: "heart", excrete: "kidney" };
+  var map = { intro: "mouth", absorb: "smallIntestine", circulate: "heart", excrete: "kidney",
+    oxy_breath: "lungs", oxy_alveoli: "lungs", oxy_pulm: "heart", oxy_systemic: "heart", oxy_waste: "kidney" };
   var key = map[currentScene] || null;
   if (currentScene === "digest") key = DIGEST_STEPS[digestCurrent].organ;
   if (currentScene === "breathe") key = BREATHE_STEPS[breatheCurrent].organ || null;
+  if (currentScene === "oxy_airway") key = OXY_AIRWAY_STEPS[oxyAirwayCurrent].organ;
   if (currentScene === "integrated" || currentScene === "results" || currentScene === "home") {
     document.querySelectorAll(".organ-btn").forEach(function (b) { b.classList.remove("hl"); });
     return;
@@ -1416,28 +2061,34 @@ function initInfoClose() {
    결과 화면
    ===================================================================== */
 function renderResults() {
-  var total = QUIZ_ORDER.length;
-  var pass = QUIZ_ORDER.filter(function (k) { return state.quiz[k] === "correct"; }).length;
+  var course = state.course || "glucose";
+  var order = quizOrderFor(course);
+  var total = order.length;
+  var pass = order.filter(function (k) { return state.quiz[k] === "correct"; }).length;
   var wrongTotal = Object.keys(state.wrong).reduce(function (a, k) { return a + state.wrong[k]; }, 0);
   var seconds = Object.keys(state.time).reduce(function (a, k) { return a + state.time[k]; }, 0);
   var mm = Math.floor(seconds / 60), ss = seconds % 60;
+  var extraCard = course === "oxygen"
+    ? '<div class="rs-card"><div class="num">' + (courseComplete("glucose") && courseComplete("oxygen") ? "완료" : "진행 중") + '</div><div class="lab">두 코스 통합</div></div>'
+    : '<div class="rs-card"><div class="num">' + (state.dragDone ? "성공" : "미완료") + '</div><div class="lab">흡수 드래그</div></div>';
 
   $("#result-summary").innerHTML =
-    '<div class="rs-card"><div class="num">' + pass + ' / ' + total + '</div><div class="lab">맞힌 퀴즈</div></div>' +
+    '<div class="rs-card"><div class="num">' + pass + ' / ' + total + '</div><div class="lab">맞힌 퀴즈 (' + (course === "oxygen" ? "산소" : "포도당") + ')</div></div>' +
     '<div class="rs-card"><div class="num">' + wrongTotal + '</div><div class="lab">틀린 횟수</div></div>' +
     '<div class="rs-card"><div class="num">' + mm + '분 ' + ss + '초</div><div class="lab">학습 시간</div></div>' +
-    '<div class="rs-card"><div class="num">' + (state.dragDone ? "성공" : "미완료") + '</div><div class="lab">흡수 드래그</div></div>';
+    extraCard;
 
   var tb = $("#result-body");
   tb.innerHTML = "";
-  QUIZ_ORDER.forEach(function (k) {
+  order.forEach(function (k) {
     var qz = QUIZZES[k];
     var tr = document.createElement("tr");
     var st = state.quiz[k];
     var badge = st === "correct" ? '<span class="badge pass">정답 ✓</span>'
       : st === "wrong" ? '<span class="badge fail">오답</span>'
       : '<span class="badge todo">미응답</span>';
-    var sceneId = k.indexOf("digest") === 0 ? "digest" : k.indexOf("breathe") === 0 ? "breathe" : k === "absorb" ? "absorb" : k;
+    var sceneId = course === "oxygen" ? k
+      : (k.indexOf("digest") === 0 ? "digest" : k.indexOf("breathe") === 0 ? "breathe" : k === "absorb" ? "absorb" : k);
     tr.innerHTML = "<td>" + qz.label + "</td><td>" + badge + "</td><td>" + (state.wrong[k] || 0) + "회</td>" +
       '<td><button class="btn btn-ghost btn-sm" data-key="' + sceneId + '">이동</button></td>';
     tb.appendChild(tr);
@@ -1450,7 +2101,6 @@ function resetAll() {
   if (!confirm("학습 기록을 모두 지울까요?")) return;
   state = defaultState();
   saveState();
-  $("#btn-continue").style.display = "none";
   renderDots();
   showScene("home");
 }
@@ -1465,16 +2115,11 @@ function initApp() {
   renderDots();
   initAbsorbDrag();
   initCirculationControls(); /* 순환 버튼: 인라인 onclick 대신 안정적인 이벤트 연결 */
+  initOxyRoutes();          /* 산소 코스 경로 버튼 */
   initSystemTabs(); /* 하단 기관계 필터 탭 */
   initInfoClose();  /* 정보 패널 닫기 버튼 */
 
-  /* 이어하기 버튼 표시 */
-  (function () {
-    var hasProgress = QUIZ_ORDER.some(function (k) { return state.quiz[k]; }) || Object.keys(state.time).length > 0;
-    if (hasProgress) $("#btn-continue").style.display = "";
-  })();
-
-  /* 홈 화면 표시 */
+  /* 홈(코스 선택) 화면 표시 */
   showScene("home");
 }
 if (document.readyState === "loading") {
