@@ -938,10 +938,15 @@ function renderSceneNav() {
     if (next) {
       var bn = document.createElement("button");
       bn.className = "btn btn-primary btn-sm";
-      if (stage === "digest" && typeof digestCurrent === "number" && digestCurrent < DIGEST_STEPS.length - 1) {
-        /* 소화 장면: ①입→②위→③작은창자 순서로 모두 확인해야 다음 장면으로 넘어가도록 안내 */
+      /* 소화·호흡 장면: ①→②→③ 순서로 모두 확인해야 다음 장면으로 넘어가도록 안내 */
+      var gateDigest = stage === "digest" && typeof digestCurrent === "number" && digestCurrent < DIGEST_STEPS.length - 1;
+      var gateBreathe = stage === "breathe" && typeof breatheCurrent === "number" && breatheCurrent < BREATHE_STEPS.length - 1;
+      if (gateDigest || gateBreathe) {
         bn.textContent = "다음 단계 →";
-        bn.onclick = function () { digestStep(digestCurrent + 1); };
+        bn.onclick = function () {
+          if (stage === "digest") digestStep(digestCurrent + 1);
+          else breatheStep(breatheCurrent + 1);
+        };
       } else {
         bn.textContent = stageName(next) + " →";
         bn.onclick = function () { showScene(next); };
@@ -1317,6 +1322,7 @@ function breatheStep(i) {
     });
   }
   highlightOrgan(st.organ);
+  renderSceneNav(); /* 단계 이동 시 하단 버튼 갱신: 마지막 단계 전엔 '다음 단계 →', 마지막 단계에선 '배설 →' */
 }
 
 /* =====================================================================
