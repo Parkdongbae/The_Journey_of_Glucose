@@ -937,8 +937,15 @@ function renderSceneNav() {
     } else { nav.appendChild(document.createElement("span")); }
     if (next) {
       var bn = document.createElement("button");
-      bn.className = "btn btn-primary btn-sm"; bn.textContent = stageName(next) + " →";
-      bn.onclick = function () { showScene(next); };
+      bn.className = "btn btn-primary btn-sm";
+      if (stage === "digest" && typeof digestCurrent === "number" && digestCurrent < DIGEST_STEPS.length - 1) {
+        /* 소화 장면: ①입→②위→③작은창자 순서로 모두 확인해야 다음 장면으로 넘어가도록 안내 */
+        bn.textContent = "다음 단계 →";
+        bn.onclick = function () { digestStep(digestCurrent + 1); };
+      } else {
+        bn.textContent = stageName(next) + " →";
+        bn.onclick = function () { showScene(next); };
+      }
       nav.appendChild(bn);
     }
   });
@@ -1084,7 +1091,7 @@ function checkStageComplete() {
    입/혀 중심 (39,18), 위 중심 (54.5,53.5), 소장 중심 (49.5,70.5) */
 var DIGEST_STEPS = [
   { organ: "mouth",          ring: [39, 18],   cap: "<span class='cap-num'>① 입</span> 이와 혀가 음식을 잘게 부수고, <b>침 속 아밀레이스</b>가 녹말을 분해하기 시작해요." },
-  { organ: "stomach",        ring: [59.5, 54], cap: "<span class='cap-num'>② 위</span> <b>위액 속 펩신</b>이 단백질을 작은 조각으로 분해하고, 위 운동으로 음식이 잘 섞여요. 녹말은 여기서도 계속 분해돼요." },
+  { organ: "stomach",        ring: [59.5, 54], cap: "<span class='cap-num'>② 위</span> <b>위액 속 펩신</b>이 단백질을 작은 조각으로 분해하고, 위 운동으로 음식이 잘 섞여요. 위에서는 <b>단백질만 분해</b>되고, 녹말은 분해되지 않아요." },
   { organ: "smallIntestine", ring: [49.5, 70.5], cap: "<span class='cap-num'>③ 작은창자</span> <b>이자액</b>(아밀레이스·트립신·라이페이스)과 <b>쓸개즙</b>이 나오면서 소화가 끝나고, 녹말이 드디어 <b>포도당</b>으로! 포도당은 융털로 흡수돼요." }
 ];
 var digestCurrent = 0;
@@ -1104,6 +1111,7 @@ function digestStep(i) {
     if (j === i) renderQuiz("quiz-digest" + j, "digest" + j);
   });
   highlightOrgan(st.organ);
+  renderSceneNav(); /* 단계 이동 시 하단 버튼 갱신: 마지막 단계 전엔 '다음 단계 →', 마지막 단계에선 '흡수 →' */
 }
 
 /* =====================================================================
