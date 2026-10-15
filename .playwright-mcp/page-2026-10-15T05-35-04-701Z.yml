@@ -1,0 +1,37 @@
+- generic [ref=f1e4]:
+  - generic [ref=f1e5]:
+    - heading [level=1] [ref=f1e6]:
+      - emphasis [ref=f1e7]: 포도당
+      - text: 과
+      - emphasis [ref=f1e8]: 산소
+      - text: 의 여행
+    - paragraph [ref=f1e9]: 3D 인체 탐험
+  - generic [ref=f1e10]:
+    - article [ref=f1e11]:
+      - generic [ref=f1e12]:
+        - img "포도당 마스코트" [ref=f1e14]
+        - generic [ref=f1e15]:
+          - heading "포도당의 여행" [level=2] [ref=f1e16]
+          - paragraph [ref=f1e17]: 떡볶이에서 에너지까지
+      - generic [ref=f1e18]:
+        - progressbar "포도당의 여행 탐험 진도" [ref=f1e19]
+        - paragraph [ref=f1e20]: 탐험 0/14단계 · 퀴즈 0/9
+      - button "시작하기" [ref=f1e22] [cursor=pointer]
+    - article [ref=f1e23]:
+      - generic [ref=f1e24]:
+        - img "산소 마스코트" [ref=f1e26]
+        - generic [ref=f1e27]:
+          - heading "산소의 여행" [level=2] [ref=f1e28]
+          - paragraph [ref=f1e29]: 들이마신 산소가 세포로
+      - generic [ref=f1e30]:
+        - progressbar "산소의 여행 탐험 진도" [ref=f1e31]
+        - paragraph [ref=f1e32]: 탐험 0/12단계 · 퀴즈 0/9
+      - button "시작하기" [ref=f1e34] [cursor=pointer]
+    - article [ref=f1e35]:
+      - generic [ref=f1e39]:
+        - heading "자유 탐색" [level=2] [ref=f1e40]
+        - paragraph [ref=f1e41]: 기관을 클릭해 몸속을 직접 탐험해요
+      - button "탐색하기" [ref=f1e43] [cursor=pointer]
+  - generic [ref=f1e44]:
+    - generic [ref=f1e45]: "3D 골격 모델: Z-Anatomy (CC BY-SA 4.0)"
+    - button "학습 기록 초기화" [ref=f1e46] [cursor=pointer]

@@ -1,0 +1,50 @@
+- generic [ref=f1e2]:
+  - generic:
+    - generic:
+      - generic [ref=f1e49]:
+        - button "홈으로 이동" [ref=f1e50] [cursor=pointer]
+        - generic [ref=f1e54]:
+          - generic [ref=f1e56]: 포도당의 여행
+          - generic [ref=f1e57]: 2 / 14
+        - button "이 단계 다시 보기" [ref=f1e58] [cursor=pointer]
+      - complementary "표시할 계통 선택" [ref=f1e63]:
+        - heading "몸속 계통" [level=3] [ref=f1e64]
+        - generic [ref=f1e65]:
+          - button "몸 전체" [pressed] [ref=f1e66] [cursor=pointer]
+          - button "소화계" [ref=f1e67] [cursor=pointer]
+          - button "호흡계" [ref=f1e68] [cursor=pointer]
+          - button "순환계" [ref=f1e69] [cursor=pointer]
+          - button "배설계" [ref=f1e70] [cursor=pointer]
+      - generic [ref=f1e71]:
+        - group "단계 목록" [ref=f1e72]:
+          - button "1단계 도입 · 떡볶이를 먹었다!" [ref=f1e73] [cursor=pointer]
+          - button "2단계 소화 ① · 입" [ref=f1e74] [cursor=pointer]
+          - button "3단계 소화 ② · 식도와 위 (잠김)" [disabled] [ref=f1e75]
+          - button "4단계 소화 ③ · 작은창자에서 포도당으로 (잠김)" [disabled] [ref=f1e76]
+          - button "5단계 흡수 · 융털로 빨려 들어가다 (잠김)" [disabled] [ref=f1e77]
+          - button "6단계 간문맥 · 간에 들러서 검문 (잠김)" [disabled] [ref=f1e78]
+          - button "7단계 순환 ① · 심장으로 (잠김)" [disabled] [ref=f1e79]
+          - button "8단계 순환 ② · 허파순환으로 산소 충전 (잠김)" [disabled] [ref=f1e80]
+          - button "9단계 순환 ③ · 대동맥을 타고 온몸으로 (잠김)" [disabled] [ref=f1e81]
+          - button "10단계 호흡 · 산소는 어디서 올까? (잠김)" [disabled] [ref=f1e82]
+          - button "11단계 세포호흡 · 두 여행의 만남 (잠김)" [disabled] [ref=f1e83]
+          - button "12단계 에너지는 어디에 쓰일까? (잠김)" [disabled] [ref=f1e84]
+          - button "13단계 배설 · 노폐물은 이렇게 나간다 (잠김)" [disabled] [ref=f1e85]
+          - button "14단계 여정 정리 · 포도당의 발자취 (잠김)" [disabled] [ref=f1e86]
+        - heading "소화 ① · 입" [level=2] [ref=f1e87]
+        - generic [ref=f1e88]: 입 안에서 이가 녹말 덩어리를 잘게 부수고, 혀가 섞어 줍니다. 침 속의 아밀레이스가 녹말을 분해하기 시작해요. 오래 씹으면 단맛이 나는 이유입니다!
+        - generic [ref=f1e89]:
+          - button "← 이전" [ref=f1e90] [cursor=pointer]
+          - button "퀴즈 풀기" [ref=f1e91] [cursor=pointer]
+          - button "다음 →" [disabled] [ref=f1e92]
+      - region "퀴즈" [ref=f1e93]:
+        - generic [ref=f1e94]:
+          - generic [ref=f1e95]: O/X 퀴즈
+          - button "퀴즈 닫기" [ref=f1e96] [cursor=pointer]
+        - paragraph [ref=f1e99]: 침 속의 아밀레이스는 녹말을 분해할 수 있다 (O/X)?
+        - generic [ref=f1e101]:
+          - button "O, 참" [ref=f1e102] [cursor=pointer]: O
+          - button "X, 거짓" [ref=f1e103] [cursor=pointer]: X
+        - generic [ref=f1e104]:
+          - button "다시 풀어보기" [ref=f1e105] [cursor=pointer]
+          - button "계속하기" [ref=f1e106] [cursor=pointer]

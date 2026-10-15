@@ -1,0 +1,56 @@
+- generic [ref=f2e2]:
+  - generic:
+    - generic:
+      - generic [ref=f2e49]:
+        - button "홈으로 이동" [ref=f2e50] [cursor=pointer]
+        - generic [ref=f2e54]:
+          - generic [ref=f2e56]: 포도당의 여행
+          - generic [ref=f2e57]: 1 / 14
+        - button "이 단계 다시 보기" [ref=f2e58] [cursor=pointer]
+      - complementary "표시할 계통 선택" [ref=f2e63]:
+        - heading "몸속 계통" [level=3] [ref=f2e64]
+        - generic [ref=f2e65]:
+          - button "몸 전체" [pressed] [ref=f2e66] [cursor=pointer]
+          - button "소화계" [ref=f2e67] [cursor=pointer]
+          - button "호흡계" [ref=f2e68] [cursor=pointer]
+          - button "순환계" [ref=f2e69] [cursor=pointer]
+          - button "배설계" [ref=f2e70] [cursor=pointer]
+      - generic [ref=f2e71]:
+        - group "단계 목록" [ref=f2e72]:
+          - button "1단계 도입 · 떡볶이를 먹었다!" [ref=f2e73] [cursor=pointer]
+          - button "2단계 소화 ① · 입 (잠김)" [disabled] [ref=f2e74]
+          - button "3단계 소화 ② · 식도와 위 (잠김)" [disabled] [ref=f2e75]
+          - button "4단계 소화 ③ · 작은창자에서 포도당으로 (잠김)" [disabled] [ref=f2e76]
+          - button "5단계 흡수 · 융털로 빨려 들어가다 (잠김)" [disabled] [ref=f2e77]
+          - button "6단계 간문맥 · 간에 들러서 검문 (잠김)" [disabled] [ref=f2e78]
+          - button "7단계 순환 ① · 심장으로 (잠김)" [disabled] [ref=f2e79]
+          - button "8단계 순환 ② · 허파순환으로 산소 충전 (잠김)" [disabled] [ref=f2e80]
+          - button "9단계 순환 ③ · 대동맥을 타고 온몸으로 (잠김)" [disabled] [ref=f2e81]
+          - button "10단계 호흡 · 산소는 어디서 올까? (잠김)" [disabled] [ref=f2e82]
+          - button "11단계 세포호흡 · 두 여행의 만남 (잠김)" [disabled] [ref=f2e83]
+          - button "12단계 에너지는 어디에 쓰일까? (잠김)" [disabled] [ref=f2e84]
+          - button "13단계 배설 · 노폐물은 이렇게 나간다 (잠김)" [disabled] [ref=f2e85]
+          - button "14단계 여정 정리 · 포도당의 발자취 (잠김)" [disabled] [ref=f2e86]
+        - heading "도입 · 떡볶이를 먹었다!" [level=2] [ref=f2e87]
+        - generic [ref=f2e88]: 체육 시간, 달리기를 마친 민수는 떡볶이를 먹었습니다. 떡볶이의 떡은 쌀가루로 만들어져 녹말(탄수화물)이 가득해요. 이 녹말이 몸속에서 포도당으로 바뀌어 여행을 떠나면, 우리 몸은 에너지를 얻습니다. 포도당의 여행을 따라가 볼까요?
+        - generic [ref=f2e89]:
+          - button "← 이전" [disabled] [ref=f2e90]
+          - button "퀴즈 풀기" [ref=f2e91] [cursor=pointer]
+          - button "다음 →" [disabled] [ref=f2e92]
+      - region "퀴즈" [ref=f2e93]:
+        - generic [ref=f2e94]:
+          - generic [ref=f2e95]: 객관식
+          - button "퀴즈 닫기" [ref=f2e96] [cursor=pointer]
+        - paragraph [ref=f2e99]: 떡볶이의 떡에 가장 많이 들어 있는 영양소는 무엇일까요?
+        - list [ref=f2e101]:
+          - listitem [ref=f2e102]:
+            - button "탄수화물" [ref=f2e103] [cursor=pointer]
+          - listitem [ref=f2e104]:
+            - button "단백질" [ref=f2e105] [cursor=pointer]
+          - listitem [ref=f2e106]:
+            - button "지방" [ref=f2e107] [cursor=pointer]
+          - listitem [ref=f2e108]:
+            - button "비타민" [ref=f2e109] [cursor=pointer]
+        - generic [ref=f2e110]:
+          - button "다시 풀어보기" [ref=f2e111] [cursor=pointer]
+          - button "계속하기" [ref=f2e112] [cursor=pointer]

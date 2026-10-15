@@ -1,0 +1,20 @@
+- generic [ref=e2]:
+  - generic:
+    - generic:
+      - generic [ref=e47]:
+        - button "홈으로 이동" [ref=e48] [cursor=pointer]
+        - generic [ref=e52]: 자유 탐색
+      - complementary "표시할 계통 선택" [ref=e54]:
+        - heading "몸속 계통" [level=3] [ref=e55]
+        - generic [ref=e56]:
+          - button "몸 전체" [pressed] [ref=e57] [cursor=pointer]
+          - button "소화계" [ref=e58] [cursor=pointer]
+          - button "호흡계" [ref=e59] [cursor=pointer]
+          - button "순환계" [ref=e60] [cursor=pointer]
+          - button "배설계" [ref=e61] [cursor=pointer]
+        - heading "골격" [level=3] [ref=e62]
+        - button "뼈대 숨기기" [pressed] [ref=e64] [cursor=pointer]
+        - generic [ref=e65]:
+          - generic [ref=e66]: 투명도
+          - slider "계통 투명도" [ref=e67] [cursor=pointer]: "100"
+        - button "기관 라벨" [ref=e68] [cursor=pointer]

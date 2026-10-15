@@ -1,0 +1,48 @@
+- generic [ref=f3e2]:
+  - generic:
+    - generic:
+      - generic [ref=f3e50]:
+        - button "홈으로 이동" [ref=f3e51] [cursor=pointer]
+        - generic [ref=f3e55]:
+          - generic [ref=f3e57]: 포도당의 여행
+          - generic [ref=f3e58]: 4 / 14
+        - button "이 단계 다시 보기" [ref=f3e59] [cursor=pointer]
+      - complementary "표시할 계통 선택" [ref=f3e64]:
+        - heading "몸속 계통" [level=3] [ref=f3e65]
+        - generic [ref=f3e66]:
+          - button "몸 전체" [pressed] [ref=f3e67] [cursor=pointer]
+          - button "소화계" [ref=f3e68] [cursor=pointer]
+          - button "호흡계" [ref=f3e69] [cursor=pointer]
+          - button "순환계" [ref=f3e70] [cursor=pointer]
+          - button "배설계" [ref=f3e71] [cursor=pointer]
+      - generic [ref=f3e72]:
+        - group "단계 목록" [ref=f3e73]:
+          - button "1단계 도입 · 떡볶이를 먹었다!" [ref=f3e74] [cursor=pointer]
+          - button "2단계 소화 ① · 입" [ref=f3e75] [cursor=pointer]
+          - button "3단계 소화 ② · 식도와 위" [ref=f3e76] [cursor=pointer]
+          - button "4단계 소화 ③ · 작은창자에서 포도당으로" [ref=f3e77] [cursor=pointer]
+          - button "5단계 흡수 · 융털로 빨려 들어가다 (잠김)" [disabled] [ref=f3e78]
+          - button "6단계 간문맥 · 간에 들러서 검문 (잠김)" [disabled] [ref=f3e79]
+          - button "7단계 순환 ① · 심장으로 (잠김)" [disabled] [ref=f3e80]
+          - button "8단계 순환 ② · 허파순환으로 산소 충전 (잠김)" [disabled] [ref=f3e81]
+          - button "9단계 순환 ③ · 대동맥을 타고 온몸으로 (잠김)" [disabled] [ref=f3e82]
+          - button "10단계 호흡 · 산소는 어디서 올까? (잠김)" [disabled] [ref=f3e83]
+          - button "11단계 세포호흡 · 두 여행의 만남 (잠김)" [disabled] [ref=f3e84]
+          - button "12단계 에너지는 어디에 쓰일까? (잠김)" [disabled] [ref=f3e85]
+          - button "13단계 배설 · 노폐물은 이렇게 나간다 (잠김)" [disabled] [ref=f3e86]
+          - button "14단계 여정 정리 · 포도당의 발자취 (잠김)" [disabled] [ref=f3e87]
+        - heading "소화 ③ · 작은창자에서 포도당으로" [level=2] [ref=f3e88]
+        - generic [ref=f3e89]: 작은창자에서는 이자액과 쓸개즙이 분비되어 녹말 분해가 마무리됩니다. 덩어리였던 녹말이 드디어 포도당 알갱이로 변했어요! 탄수화물·단백질·지방의 소화가 모두 끝나는 곳, 바로 여기입니다.
+        - generic [ref=f3e90]:
+          - button "← 이전" [ref=f3e91] [cursor=pointer]
+          - button "퀴즈 풀기" [ref=f3e92] [cursor=pointer]
+          - button "다음 →" [disabled] [ref=f3e93]
+      - region "퀴즈" [ref=f3e94]:
+        - generic [ref=f3e95]:
+          - generic [ref=f3e96]: 기관 찾기
+          - button "퀴즈 닫기" [ref=f3e97] [cursor=pointer]
+        - paragraph [ref=f3e100]: 3D 몸에서 탄수화물·단백질·지방의 소화가 모두 일어나고, 영양소가 흡수되는 기관을 클릭하세요!
+        - paragraph [ref=f3e102]: 3D 몸에서 깜빡이는 기관을 직접 클릭하세요!
+        - generic [ref=f3e103]:
+          - button "다시 풀어보기" [ref=f3e104] [cursor=pointer]
+          - button "계속하기" [ref=f3e105] [cursor=pointer]
