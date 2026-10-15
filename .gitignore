@@ -9,6 +9,10 @@ images.zip
 index1.html
 index_old.html
 
+# 3D 앱 빌드/의존성
+3d/node_modules/
+3d/dist/
+
 # OS 불필요 파일
 Thumbs.db
 Desktop.ini
