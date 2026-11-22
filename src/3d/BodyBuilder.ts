@@ -1,23 +1,31 @@
 import {
+  Box3,
+  type BufferGeometry,
   CapsuleGeometry,
   CatmullRomCurve3,
   Color,
   CylinderGeometry,
   DoubleSide,
+  EqualDepth,
   ExtrudeGeometry,
   Group,
+  LatheGeometry,
   MathUtils,
   Mesh,
+  MeshBasicMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
+  ShaderMaterial,
   Shape,
+  SplineCurve,
   SphereGeometry,
   TorusGeometry,
   TubeGeometry,
+  Vector2,
   Vector3,
 } from "three";
 import { ORGAN_MAP } from "../data/organs";
-import type { OrganMeta, OrganShape, OrganSystem, SystemName, Vec3 } from "../types";
+import type { OrganMeta, OrganShape, OrganSystem, SystemName, ThemeName, Vec3 } from "../types";
 
 function disposeObject(root: Group): void {
   root.traverse((obj) => {
@@ -29,10 +37,9 @@ function disposeObject(root: Group): void {
   });
 }
 
-const SKIN_COLOR = 0xf5cdb0;
 const FADE_SEC = 0.4;
 const BREATH_PERIOD = 4;
-const DIM_FACTOR = 0.35;
+const DIM_FACTOR = 0.2;
 
 /** 하이라이터가 dim 상태를 기록하고, 불투명도는 이 모듈이 단일 작성자로 계산한다. */
 export interface OrganRecord {
@@ -57,7 +64,15 @@ interface BreathTarget {
   mesh: Mesh;
   baseScale: Vector3;
   basePos: Vector3;
+  /** 메시의 실제 중심 — 원점이 발밑에 있는 실제 메시도 제자리에서 부풀도록 이 점을 기준으로 확대한다 */
+  center: Vector3;
 }
+
+/**
+ * 실제 크기로는 보이지 않는 구조를 크게 키워 표시한 확대 모형.
+ * 평소에는 몸에 붙은 혹처럼 보여 혼란을 주므로, 그 구조를 다루는 단계에서만 나타난다.
+ */
+const ON_DEMAND = new Set(["thighCell", "alveoli"]);
 
 const vv = (p: Vec3): Vector3 => new Vector3(p.x, p.y, p.z);
 
@@ -109,31 +124,92 @@ export class BodyBuilder {
 
   // ---------------------------------------------------------------- skin shell
 
+  /**
+   * 몸 외형 — 회전체(Lathe) 프로파일로 만든 사람 실루엣.
+   * 깊이 선행 패스 + 프레넬 림 셰이더로 "가장 앞 표면 한 겹"만 그려,
+   * 캡슐이 겹쳐 보이는 대신 윤곽선이 빛나는 유리 몸처럼 보인다.
+   */
+  private skinMaterial = new ShaderMaterial({
+    uniforms: {
+      uColor: { value: new Color(0x8fd0ff) },
+      uRim: { value: 0.75 },
+      uBase: { value: 0.045 },
+    },
+    vertexShader: `
+      varying vec3 vN; varying vec3 vV;
+      void main() {
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vN = normalize(normalMatrix * normal);
+        vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      uniform vec3 uColor; uniform float uRim; uniform float uBase;
+      varying vec3 vN; varying vec3 vV;
+      void main() {
+        float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.4);
+        gl_FragColor = vec4(uColor, uBase + f * uRim);
+      }`,
+    transparent: true,
+    depthWrite: false,
+    depthFunc: EqualDepth,
+  });
+
   private buildSkin(): void {
-    const mat = new MeshStandardMaterial({
-      color: SKIN_COLOR,
-      roughness: 0.9,
-      metalness: 0,
-      transparent: true,
-      opacity: 0.15,
-      depthWrite: false,
-    });
-    const add = (geo: CapsuleGeometry | SphereGeometry, x: number, y: number, z: number, rotZ = 0): void => {
-      const m = new Mesh(geo, mat);
-      m.position.set(x, y, z);
-      m.rotation.z = rotZ;
-      m.renderOrder = 5; // 반투명 피부는 기관 뒤에서 그려짐 (기관이 비쳐 보임)
-      this.skinGroup.add(m);
+    const prepass = new MeshBasicMaterial({ colorWrite: false, transparent: true });
+    const add = (geo: BufferGeometry, x: number, y: number, z: number, rotZ = 0, sx = 1, sz = 1): void => {
+      for (const [mat, order] of [
+        [prepass, 90],
+        [this.skinMaterial, 91],
+      ] as const) {
+        const m = new Mesh(geo, mat);
+        m.position.set(x, y, z);
+        m.rotation.z = rotZ;
+        m.scale.set(sx, 1, sz);
+        m.renderOrder = order; // 기관·경로를 모두 그린 뒤 마지막에 얹는다
+        this.skinGroup.add(m);
+      }
     };
-    add(new CapsuleGeometry(1.15, 4.3, 10, 28), 0, 10.4, 0); // torso
-    add(new SphereGeometry(1.08, 36, 24), 0, 14.15, 0); // head
-    add(new CapsuleGeometry(0.4, 0.6, 8, 18), 0, 13.15, 0); // neck
-    add(new CapsuleGeometry(0.36, 5.3, 8, 18), 1.52, 9.7, 0, -0.1); // left arm
-    add(new CapsuleGeometry(0.36, 5.3, 8, 18), -1.52, 9.7, 0, 0.1); // right arm
-    add(new CapsuleGeometry(0.5, 6.3, 8, 20), 0.62, 3.55, 0); // left leg
-    add(new CapsuleGeometry(0.5, 6.3, 8, 20), -0.62, 3.55, 0); // right leg
+    /** [반지름, 높이] 점열을 회전시킨 매끈한 회전체 */
+    const lathe = (profile: [number, number][]): BufferGeometry => {
+      const curve = new SplineCurve(profile.map(([r, y]) => new Vector2(r, y)));
+      return new LatheGeometry(curve.getPoints(40), 40);
+    };
+
+    // 머리 + 목
+    add(new SphereGeometry(1, 40, 28), 0, 14.3, 0.05, 0, 0.84, 0.95);
+    this.skinGroup.children.slice(-2).forEach((m) => (m.scale.y = 1.1));
+    add(lathe([[0.4, 0], [0.36, 0.35], [0.4, 0.8]]), 0, 12.75, -0.05);
+    // 몸통: 어깨 → 허리 → 골반
+    add(
+      lathe([
+        [0.02, 6.55], [0.75, 6.7], [1.36, 7.3], [1.42, 8.0], [1.26, 9.2], [1.2, 10.2],
+        [1.36, 11.4], [1.6, 12.3], [1.5, 12.75], [0.9, 13.05], [0.36, 13.2],
+      ]),
+      0, 0, 0, 0, 1, 0.66,
+    );
+    // 팔: 어깨에서 손끝까지 가늘어짐
+    const arm = lathe([[0.02, 0.05], [0.24, 0.3], [0.2, 0.9], [0.24, 2.1], [0.3, 3.2], [0.34, 4.6], [0.4, 5.5], [0.3, 6.0], [0.02, 6.15]]);
+    add(arm, 2.78, 6.25, 0, 0.19);
+    add(arm, -2.78, 6.25, 0, -0.19);
+    // 다리: 허벅지 → 무릎 → 종아리 → 발목
+    const leg = lathe([[0.02, 0.0], [0.3, 0.12], [0.26, 0.9], [0.42, 2.3], [0.38, 3.5], [0.5, 4.6], [0.66, 6.2], [0.62, 7.0], [0.3, 7.5], [0.02, 7.6]]);
+    add(leg, 0.72, 0, 0);
+    add(leg, -0.72, 0, 0);
+    // 발
+    const foot = new SphereGeometry(1, 20, 14);
+    add(foot, 0.76, 0.2, 0.42, 0, 0.3, 0.72);
+    add(foot, -0.76, 0.2, 0.42, 0, 0.3, 0.72);
+    this.skinGroup.children.slice(-4).forEach((m) => (m.scale.y = 0.2));
   }
 
+  /** 테마에 맞춰 몸 윤곽 색을 바꾼다 (어두운 배경: 밝은 하늘색 / 밝은 배경: 짙은 청회색) */
+  setTheme(theme: ThemeName): void {
+    const u = this.skinMaterial.uniforms;
+    (u.uColor!.value as Color).setHex(theme === "dark" ? 0x8fd0ff : 0x3b5b86);
+    u.uRim!.value = theme === "dark" ? 0.75 : 0.6;
+    u.uBase!.value = theme === "dark" ? 0.045 : 0.06;
+  }
   // -------------------------------------------------------------- organ build
 
   private buildOrgan(meta: OrganMeta): OrganRecord {
@@ -148,6 +224,8 @@ export class BodyBuilder {
     const baseColors: Color[] = [];
     for (const mesh of meshes) {
       group.add(mesh);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
       mesh.userData.organId = meta.id;
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       for (const mat of mats) {
@@ -202,7 +280,7 @@ export class BodyBuilder {
       case "intestineCoil":
         return [this.tubeFromLocalPoints(meta, this.coilPoints(), 0.34, 120)];
       case "intestineFrame":
-        return [this.tubeFromLocalPoints(meta, this.framePoints(), 0.3, 110)];
+        return [this.tubeFromLocalPoints(meta, this.framePoints(), 0.2, 140)];
       case "heart":
         return this.buildHeart(meta);
       case "beanPair":
@@ -224,11 +302,11 @@ export class BodyBuilder {
   private organMaterial(color: number, opacity = 1): MeshPhysicalMaterial {
     return new MeshPhysicalMaterial({
       color,
-      roughness: 0.42,
+      roughness: 0.5,
       metalness: 0,
-      clearcoat: 0.35,
-      clearcoatRoughness: 0.5,
-      envMapIntensity: 1.1,
+      clearcoat: 0.25,
+      clearcoatRoughness: 0.45,
+      envMapIntensity: 0.9,
       transparent: opacity < 0.999,
       opacity,
       depthWrite: opacity > 0.6,
@@ -360,17 +438,17 @@ export class BodyBuilder {
     return [body, hook];
   }
 
-  // 간: −x(신체 오른쪽)에 납작한 쐐기 + 작은 엽
+  // 간: 몸 오른쪽(−x) 가로막 바로 아래의 큰 쐐기 + 정중선을 넘어가는 작은 왼엽
   private buildLiver(meta: OrganMeta): Mesh[] {
     const mat = this.organMaterial(meta.color);
-    const main = this.sphereMesh(mat, 0.95, { x: 1.3, y: 0.6, z: 0.9 });
-    main.position.set(0, 0.08, 0);
-    main.rotation.z = 0.1;
-    const lobe = this.sphereMesh(mat, 0.55, { x: 1.0, y: 0.5, z: 0.75 });
-    lobe.position.set(0.85, -0.12, 0.1);
-    return [main, lobe];
+    const right = this.sphereMesh(mat, 0.62, { x: 1.12, y: 0.86, z: 0.98 });
+    right.position.set(-0.08, 0, 0);
+    right.rotation.z = 0.18;
+    const left = this.sphereMesh(mat, 0.4, { x: 1.35, y: 0.62, z: 0.8 });
+    left.position.set(0.56, 0.2, 0.12);
+    left.rotation.z = 0.32;
+    return [right, left];
   }
-
   private buildPancreas(meta: OrganMeta): Mesh[] {
     const mat = this.organMaterial(meta.color);
     const body = new Mesh(new CapsuleGeometry(0.18, 1.15, 10, 24), mat);
@@ -400,24 +478,26 @@ export class BodyBuilder {
     ];
   }
 
-  // 큰창자 테두리: −x(오른쪽) 상행 → 가로 → +x(왼쪽) 하행 → 직장 갈고리
+  // 큰창자: 오른쪽 아래 막창자 → 오름 → 가로 → 내림 → 구불 → 곧창자 (작은창자를 액자처럼 두른다)
+  // 좌표는 기관 위치(0, 8.9, 0.1) 기준 — 실제 작은창자 메시(x -0.78~0.97, y 7.9~9.9)를 감싸도록 잡았다
   private framePoints(): Vec3[] {
     return [
-      { x: -1.3, y: -0.75, z: -0.05 },
-      { x: -1.42, y: 0.0, z: -0.05 },
-      { x: -1.3, y: 0.85, z: -0.05 },
-      { x: -0.7, y: 1.15, z: -0.05 },
-      { x: 0, y: 1.2, z: -0.05 },
-      { x: 0.7, y: 1.15, z: -0.05 },
-      { x: 1.32, y: 0.8, z: -0.05 },
-      { x: 1.42, y: 0.0, z: -0.05 },
-      { x: 1.3, y: -0.68, z: -0.05 },
-      { x: 0.8, y: -0.95, z: -0.05 },
-      { x: 0.25, y: -1.0, z: -0.02 },
-      { x: -0.15, y: -0.85, z: 0.0 },
+      { x: -0.92, y: -0.95, z: 0.1 },
+      { x: -1.04, y: -0.5, z: 0.08 },
+      { x: -1.05, y: 0.3, z: 0.05 },
+      { x: -0.95, y: 0.95, z: 0.12 },
+      { x: -0.45, y: 1.12, z: 0.3 },
+      { x: 0.15, y: 1.08, z: 0.34 },
+      { x: 0.7, y: 1.12, z: 0.26 },
+      { x: 1.08, y: 0.92, z: 0.1 },
+      { x: 1.13, y: 0.2, z: 0.02 },
+      { x: 1.08, y: -0.6, z: 0.0 },
+      { x: 0.8, y: -1.05, z: -0.05 },
+      { x: 0.35, y: -1.08, z: -0.15 },
+      { x: 0.05, y: -1.3, z: -0.32 },
+      { x: 0.0, y: -1.62, z: -0.38 },
     ];
   }
-
   // 심장: 기울어진 타원체 + 혈관 단 4개(동맥 2 적색, 정맥 2 청색)
   private buildHeart(meta: OrganMeta): Mesh[] {
     const mat = this.organMaterial(meta.color);
@@ -515,10 +595,10 @@ export class BodyBuilder {
       clearcoatRoughness: 0.5,
       envMapIntensity: 1.1,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.3,
       depthWrite: false,
     });
-    const shell = new Mesh(new SphereGeometry(0.5, 32, 24), shellMat);
+    const shell = new Mesh(new SphereGeometry(0.34, 32, 24), shellMat);
     const nucleusMat = new MeshPhysicalMaterial({
       color: 0xe8a13a,
       roughness: 0.35,
@@ -529,7 +609,7 @@ export class BodyBuilder {
       emissive: 0xffdf6b,
       emissiveIntensity: 0.6,
     });
-    const nucleus = new Mesh(new SphereGeometry(0.17, 24, 16), nucleusMat);
+    const nucleus = new Mesh(new SphereGeometry(0.13, 24, 16), nucleusMat);
     return [shell, nucleus];
   }
 
@@ -539,7 +619,13 @@ export class BodyBuilder {
     const lungs = this.records.get("lungs");
     const diaphragm = this.records.get("diaphragm");
     for (const mesh of lungs?.meshes ?? []) {
-      this.breathTargets.push({ kind: "lungs", mesh, baseScale: mesh.scale.clone(), basePos: mesh.position.clone() });
+      this.breathTargets.push({
+        kind: "lungs",
+        mesh,
+        baseScale: mesh.scale.clone(),
+        basePos: mesh.position.clone(),
+        center: new Box3().setFromObject(mesh).getCenter(new Vector3()),
+      });
     }
     for (const mesh of diaphragm?.meshes ?? []) {
       this.breathTargets.push({
@@ -547,6 +633,7 @@ export class BodyBuilder {
         mesh,
         baseScale: mesh.scale.clone(),
         basePos: mesh.position.clone(),
+        center: new Box3().setFromObject(mesh).getCenter(new Vector3()),
       });
     }
   }
@@ -559,6 +646,17 @@ export class BodyBuilder {
     this.systemsVisible = visible;
     for (const rec of this.records.values()) {
       this.setFadeTarget(rec, this.effectiveOn(rec));
+    }
+  }
+
+  private onDemand = new Set<string>();
+
+  /** 확대 모형(세포·허파꽈리) 중 지금 보여 줄 것을 정한다 */
+  setOnDemandVisible(ids: readonly string[]): void {
+    this.onDemand = new Set(ids.filter((id) => ON_DEMAND.has(id)));
+    for (const id of ON_DEMAND) {
+      const rec = this.records.get(id);
+      if (rec) this.setFadeTarget(rec, this.effectiveOn(rec));
     }
   }
 
@@ -585,6 +683,8 @@ export class BodyBuilder {
     group.userData.organId = id;
     for (const mesh of meshes) {
       mesh.userData.organId = id;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
       mesh.matrixAutoUpdate = true; // 호흡 등 애니메이션이 스케일/위치를 바꿀 수 있음
       mesh.matrixWorldAutoUpdate = true;
     }
@@ -597,7 +697,7 @@ export class BodyBuilder {
       group,
       meshes,
       materials,
-      baseOpacities: materials.map(() => 1),
+      baseOpacities: materials.map((m) => m.opacity),
       baseColors: materials.map((m) => m.color.clone()),
       fade: 1,
       fadeFrom: 1,
@@ -625,7 +725,9 @@ export class BodyBuilder {
 
   /** 계통 토글 × 퀴즈 고립 × 계통 투명도 슬라이더를 모두 반영한 최종 가시 여부 */
   private effectiveOn(rec: OrganRecord): boolean {
-    const sysOn = rec.system === "cell" ? this.systemsVisible.has("circulatory") : this.systemsVisible.has(rec.system);
+    // 세포 표지는 그 세포를 다루는 단계에서만 보인다 (평소에는 다리에 뜬 점처럼 보여 혼란을 준다)
+    const sysOn = rec.system === "cell" ? true : this.systemsVisible.has(rec.system);
+    if (ON_DEMAND.has(rec.id) && !this.onDemand.has(rec.id)) return false;
     if (!sysOn) return false;
     return this.isolated === null || this.isolated.has(rec.id);
   }
@@ -652,12 +754,12 @@ export class BodyBuilder {
     }
   }
 
+  /** 기관 중심(세계 좌표). 실제 메시는 그룹이 원점에 있으므로 메타에 기록된 중심을 쓴다. */
   getOrganWorldPosition(id: string, out: Vector3): Vector3 | undefined {
-    const rec = this.records.get(id);
-    if (!rec) return undefined;
-    return rec.group.getWorldPosition(out);
+    const meta = ORGAN_MAP.get(id);
+    if (!meta || !this.records.has(id)) return undefined;
+    return out.set(meta.position.x, meta.position.y, meta.position.z);
   }
-
   setBreathing(on: boolean): void {
     this.breathingOn = on;
     if (on && this.breathAmp === 0) this.breathPhase = 0;
@@ -701,10 +803,15 @@ export class BodyBuilder {
     const s = Math.sin((Math.PI * 2 * this.breathPhase) / BREATH_PERIOD);
     for (const t of this.breathTargets) {
       if (t.kind === "lungs") {
-        t.mesh.scale.set(
-          t.baseScale.x * (1 - 0.04 * a * s),
-          t.baseScale.y * (1 + 0.12 * a * s),
-          t.baseScale.z * (1 - 0.04 * a * s),
+        // 들숨(s>0): 가슴이 앞뒤·좌우·위아래로 넓어진다
+        const fx = 1 + 0.07 * a * s;
+        const fy = 1 + 0.06 * a * s;
+        const fz = 1 + 0.1 * a * s;
+        t.mesh.scale.set(t.baseScale.x * fx, t.baseScale.y * fy, t.baseScale.z * fz);
+        t.mesh.position.set(
+          t.center.x + (t.basePos.x - t.center.x) * fx,
+          t.center.y + (t.basePos.y - t.center.y) * fy,
+          t.center.z + (t.basePos.z - t.center.z) * fz,
         );
       } else {
         t.mesh.position.y = t.basePos.y - 0.22 * a * s; // 들숨(s>0)에 내려감

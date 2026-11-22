@@ -1,4 +1,4 @@
-import { Vector3 } from "three";
+import { Box3, Vector3 } from "three";
 import { AnatomyRig } from "./AnatomyRig";
 import { BodyBuilder } from "./BodyBuilder";
 import { FxLayer } from "./FxLayer";
@@ -14,9 +14,30 @@ import type {
   Scene,
   SceneApi,
   SystemName,
+  ThemeName,
+  ViewInsets,
 } from "../types";
 
 export type { Scene } from "../types";
+
+/** 기관 크기에 맞춘 근접 거리 (자유 탐색에서 기관을 골랐을 때) */
+const FOCUS_DISTANCE: Partial<Record<string, number>> = {
+  mouth: 3.2,
+  nasal: 3.2,
+  gallbladder: 3.2,
+  pancreas: 3.6,
+  alveoli: 3.0,
+  bladder: 3.6,
+  thighCell: 4.2,
+  aorta: 9,
+  venaCava: 9,
+  esophagus: 6,
+  ureters: 6,
+  smallIntestine: 5.4,
+  largeIntestine: 6,
+  lungs: 6,
+  diaphragm: 6,
+};
 
 export function createScene(container: HTMLElement): Scene {
   const mgr = new SceneManager(container);
@@ -51,11 +72,20 @@ export function createScene(container: HTMLElement): Scene {
 
   const rig = new AnatomyRig();
   let skeletonVisible = false;
-  void rig.load(body).then(() => {
-    if (rig.skeletonRoot.parent === null) mgr.scene.add(rig.skeletonRoot);
-    rig.setSkeletonVisible(skeletonVisible);
-  });
+  let skeletonGhost = false;
+  const ready = rig
+    .load(body)
+    .then(() => {
+      if (rig.skeletonRoot.parent === null) mgr.scene.add(rig.skeletonRoot);
+      rig.setSkeletonVisible(skeletonVisible, skeletonGhost);
+      highlighter.rebuild();
+    })
+    .catch(() => {
+      // 실제 메시 로딩 실패 — 절차적 기관으로 계속 동작
+    });
   mgr.registerUpdater(() => labels.update());
+
+  const organPos = (id: string): Vector3 | undefined => body.getOrganWorldPosition(id, new Vector3());
 
   const api: SceneApi = {
     setSystemsVisible(visible: SystemName[]): void {
@@ -68,9 +98,11 @@ export function createScene(container: HTMLElement): Scene {
       return mgr.resetView(durationSec);
     },
     highlight(organIds: string[]): void {
+      body.setOnDemandVisible(organIds);
       highlighter.highlight(organIds);
     },
     clearHighlight(): void {
+      body.setOnDemandVisible([]);
       highlighter.clearHighlight();
     },
     pulseOrgan(organId: string, on: boolean): void {
@@ -83,8 +115,11 @@ export function createScene(container: HTMLElement): Scene {
       pathAnimator.stopPath();
     },
     async flyThroughOrganIds(organIds: string[], perStopSec: number): Promise<void> {
-      const pos = new Vector3();
-      await mgr.flyThroughOrganIds((id) => body.getOrganWorldPosition(id, pos), organIds, perStopSec);
+      await mgr.flyThroughOrganIds(organPos, organIds, perStopSec, (id) => {
+        body.setOnDemandVisible([id]);
+        highlighter.highlight([id]);
+        labels.setFocus([id]);
+      });
     },
     spawnFx(fxSpec: FxSpec): void {
       fx.spawnFx(fxSpec);
@@ -124,12 +159,51 @@ export function createScene(container: HTMLElement): Scene {
 
   return {
     ...api,
-    setSkeletonVisible(on: boolean): void {
+    ready,
+    setSkeletonVisible(on: boolean, ghost = false): void {
       skeletonVisible = on;
-      rig.setSkeletonVisible(on);
+      skeletonGhost = ghost;
+      rig.setSkeletonVisible(on, ghost);
     },
     setLabelsVisible(on: boolean): void {
       labels.setVisible(on);
+    },
+    setFocusLabels(organIds: string[]): void {
+      labels.setFocus(organIds);
+    },
+    focusOrgan(organId: string): Promise<void> {
+      const pos = organPos(organId);
+      if (pos === undefined) return Promise.resolve();
+      return mgr.focusPoint(pos, FOCUS_DISTANCE[organId] ?? 4.6);
+    },
+    setViewInsets(insets: ViewInsets): void {
+      mgr.setViewInsets(insets);
+    },
+    setTheme(theme: ThemeName): void {
+      mgr.setTheme(theme);
+      body.setTheme(theme);
+    },
+    setAutoRotate(on: boolean): void {
+      mgr.setAutoRotate(on);
+    },
+    getQuality(): "low" | "high" {
+      return mgr.getQuality();
+    },
+    debugOrganCenters(): Record<string, [number, number, number]> {
+      const out: Record<string, [number, number, number]> = {};
+      for (const id of body.records.keys()) {
+        const p = organPos(id);
+        const rec = body.records.get(id);
+        if (p && rec) {
+          const b = new Box3().setFromObject(rec.group);
+          out[id] = [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)];
+          (out as Record<string, number[]>)[id + "_box"] = [b.min.x, b.max.x, b.min.y, b.max.y, b.min.z, b.max.z].map((n) => +n.toFixed(2));
+        }
+      }
+      return out;
+    },
+    debugFrameMs(frames?: number): number {
+      return mgr.debugFrameMs(frames);
     },
     onHoverChange(cb: (organId: string | null) => void): void {
       highlighter.onHoverChange(cb);

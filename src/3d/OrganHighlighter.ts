@@ -2,12 +2,12 @@ import { BackSide, Color, Group, Mesh, MeshBasicMaterial, Object3D, Raycaster, V
 import type { OrganRecord } from "./BodyBuilder";
 
 const HOVER_EMISSIVE = 0.25;
-const HIGHLIGHT_EMISSIVE = 0.5;
+const HIGHLIGHT_EMISSIVE = 0.14;
 const CLICK_MOVE_PX = 6;
 const HOVER_INTERVAL = 0.06;
 const OUTLINE_HOVER = 0xffffff;
 const OUTLINE_FOCUS = 0xffd166;
-const OUTLINE_SCALE = 1.035;
+const OUTLINE_PUSH = 0.022;
 
 /** 강조/딤/펄스/윤곽선/레이캐스트 클릭·호버 전담. 불투명도 계산은 BodyBuilder.refreshOpacity에 위임. */
 export class OrganHighlighter {
@@ -65,6 +65,16 @@ export class OrganHighlighter {
     this.refreshAll();
   }
 
+  /** 실제 해부 메시로 교체된 뒤 호출 — 옛 메시에 붙어 있던 윤곽선 캐시를 버리고 다시 그린다 */
+  rebuild(): void {
+    for (const entry of this.outlines.values()) {
+      entry.group.removeFromParent();
+      entry.mat.dispose();
+    }
+    this.outlines.clear();
+    this.refreshAll();
+  }
+
   clearHighlight(): void {
     this.highlighted.clear();
     this.refreshAll();
@@ -85,8 +95,11 @@ export class OrganHighlighter {
     for (const id of this.highlighted) {
       const rec = this.records.get(id);
       if (!rec) continue;
-      const s = 1 + 0.04 * Math.sin((Math.PI * 2 * this.clock) / 1.2);
-      rec.group.scale.setScalar(s);
+      // 은은한 밝기 맥동 (크기를 바꾸면 실제 메시가 원점 기준으로 밀려 위치가 어긋난다)
+      const wave = 0.5 + 0.5 * Math.sin((Math.PI * 2 * this.clock) / 1.6);
+      if (!this.pulsing.has(id)) {
+        for (const mat of rec.materials) mat.emissiveIntensity = HIGHLIGHT_EMISSIVE * (0.55 + 0.9 * wave);
+      }
     }
     // 퀴즈 옵션 펄스 (1s 주기 강한 emissive)
     for (const id of this.pulsing) {
@@ -96,7 +109,8 @@ export class OrganHighlighter {
         continue;
       }
       const wave = 0.5 + 0.5 * Math.sin(Math.PI * 2 * this.clock);
-      this.applyEmissive(rec, this.pulseColor, 0.35 + 0.55 * wave);
+      // 고유색을 지우지 않는 선에서 밝아졌다 어두워졌다 한다
+      this.applyEmissive(rec, this.tmpColor.copy(rec.baseColors[0] ?? this.white).lerp(this.pulseColor, 0.35), 0.08 + 0.42 * wave);
     }
   }
 
@@ -123,7 +137,8 @@ export class OrganHighlighter {
     rec.group.scale.setScalar(1);
     if (this.pulsing.has(organId)) return; // 펄스는 update가 매 프레임 덮어씀
     if (this.highlighted.has(organId)) {
-      this.applyEmissive(rec, this.tmpColor.copy(rec.baseColors[0] ?? this.white).lerp(this.white, 0.55), HIGHLIGHT_EMISSIVE);
+      // 고유색을 살짝만 밝힌다 (흰색을 섞으면 기관이 뿌옇게 날아간다)
+      this.applyEmissive(rec, this.tmpColor.copy(rec.baseColors[0] ?? this.white), HIGHLIGHT_EMISSIVE);
       this.showOutline(organId, OUTLINE_FOCUS);
     } else if (this.hovered === organId) {
       this.applyEmissive(rec, rec.baseColors[0] ?? this.white, HOVER_EMISSIVE);
@@ -145,12 +160,22 @@ export class OrganHighlighter {
     if (!entry) {
       const rec = this.records.get(organId);
       if (!rec) return;
+      // 반투명 막(가로막 등)은 역면 셸이 면 전체를 덮어 버리므로 윤곽선을 그리지 않는다
+      if ((rec.baseOpacities[0] ?? 1) < 0.9) return;
       const group = new Group();
-      const mat = new MeshBasicMaterial({ side: BackSide, color, toneMapped: false, transparent: true, opacity: 0.9 });
+      // 법선 방향으로 밀어낸 역면 셸 — 원점 기준 확대와 달리 어느 위치의 메시든 두께가 균일하다
+      const mat = new MeshBasicMaterial({ side: BackSide, color, toneMapped: false, transparent: true, opacity: 0.95 });
+      mat.onBeforeCompile = (shader) => {
+        shader.vertexShader = shader.vertexShader.replace(
+          "#include <begin_vertex>",
+          `vec3 transformed = position + normalize(normal) * ${OUTLINE_PUSH.toFixed(4)};`,
+        );
+      };
       for (const mesh of rec.meshes) {
         const shell = mesh.clone();
         shell.material = mat;
-        shell.scale.multiplyScalar(OUTLINE_SCALE);
+        shell.castShadow = false;
+        shell.receiveShadow = false;
         shell.userData.organId = organId;
         shell.renderOrder = 1;
         group.add(shell);

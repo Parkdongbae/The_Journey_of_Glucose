@@ -53,6 +53,25 @@ export interface Vec3 {
   z: number;
 }
 
+export type ThemeName = "dark" | "light";
+
+/** UI 패널이 가리는 화면 영역(px) — 3D 중심을 남은 영역의 가운데로 옮기는 데 쓴다 */
+export interface ViewInsets {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/** 학습 자료 삽화 (src/assets/figures) */
+export interface Figure {
+  key: string;
+  caption: string;
+}
+
+/** 코스 안의 큰 단원 묶음 */
+export type ChapterId = "intro" | "digest" | "absorb" | "circulate" | "breathe" | "cell" | "excrete" | "wrap";
+
 export interface CameraView {
   position: Vec3;
   target: Vec3;
@@ -86,6 +105,18 @@ export interface CourseStep {
   id: string;
   title: string;
   body: string; // 설명 텍스트 (HTML 문자열 허용: <b>, <br>)
+  /** 단원 묶음 (단계 목록의 구획) */
+  chapter: ChapterId;
+  /** 한 줄로 줄인 핵심 정리 2~3개 */
+  keyPoints: string[];
+  /** 꼭 알아야 할 용어 */
+  terms?: { word: string; meaning: string }[];
+  /** 생활 속 예시·궁금증 풀이 */
+  tip?: string;
+  /** 3D로 보기 어려운 미시 구조를 보여 주는 확대 자료 */
+  figure?: Figure;
+  /** 뼈대를 흐리게 함께 보여 위치 감각을 돕는다 */
+  showSkeleton?: boolean;
   view: CameraView;
   focusOrganIds: string[];
   /** 스텝 진입 시 켜질 계통 레이어 (나머지는 자동 반투명/숨김) */
@@ -105,6 +136,8 @@ export interface OrganClickQuiz {
   id: string;
   question: string;
   explanation: string;
+  /** 틀렸을 때 보여 줄 힌트 */
+  hint?: string;
   /** 3D 씬에서 깜빡일 보기 기관들 */
   optionOrganIds: string[];
   answerOrganId: string;
@@ -129,6 +162,8 @@ export interface OxQuiz {
   question: string;
   explanation: string;
   answer: boolean;
+  /** 틀렸을 때 보여 줄 힌트 */
+  hint?: string;
   /** 오답 해설 시 함께 강조할 기관(예: 동맥/정맥 색 설명) */
   replayOrganIds?: string[];
 }
@@ -140,6 +175,8 @@ export interface McqQuiz {
   explanation: string;
   choices: string[];
   answerIndex: number;
+  /** 보기별 오답 힌트 (choices와 같은 순서, 정답 자리는 빈 문자열) */
+  hints?: string[];
 }
 
 export type Quiz = OrganClickQuiz | OrderQuiz | OxQuiz | McqQuiz;
@@ -221,7 +258,22 @@ export type AppScreen = "home" | "course" | "explore" | "result";
  * 구현은 src/3d/index.ts createScene.
  */
 export interface Scene extends SceneApi {
-  setSkeletonVisible(on: boolean): void;
+  /** 뼈대 표시. ghost=true면 기관을 가리지 않게 흐리게 보인다 */
+  setSkeletonVisible(on: boolean, ghost?: boolean): void;
+  /** 지정 기관에 이름표를 붙인다 (전체 라벨 토글과 별개로 항상 표시) */
+  setFocusLabels(organIds: string[]): void;
+  /** 기관 하나를 화면 가운데로 */
+  focusOrgan(organId: string): Promise<void>;
+  setViewInsets(insets: ViewInsets): void;
+  setTheme(theme: ThemeName): void;
+  setAutoRotate(on: boolean): void;
+  getQuality(): "low" | "high";
+  /** QA용: 동기 렌더링 평균 프레임 시간(ms) */
+  debugFrameMs(frames?: number): number;
+  /** QA용: 기관별 실제 중심 좌표 */
+  debugOrganCenters(): Record<string, [number, number, number]>;
+  /** 실제 해부 메시 로딩이 끝나면 resolve */
+  ready: Promise<void>;
   /** 주요 기관 이름 라벨(리더선) 토글 */
   setLabelsVisible(on: boolean): void;
   /** 자유 탐색 호버 기관 변경 콜백 (null = 벗어남) */

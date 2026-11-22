@@ -5,9 +5,6 @@ import { viteSingleFile } from "vite-plugin-singlefile";
 export default defineConfig({
   base: "./",
   plugins: [viteSingleFile()],
-  server: {
-    fs: { allow: ["..", "../images"] },
-  },
   build: {
     target: "es2022",
     assetsInlineLimit: 100000000,

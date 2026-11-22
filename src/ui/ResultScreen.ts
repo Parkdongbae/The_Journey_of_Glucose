@@ -1,13 +1,16 @@
 /**
- * 결과 화면 — 두 코스의 진도·퀴즈 점수 요약, 코스별 "다시 배우기",
- * 두 코스를 모두 끝냈을 때 통합 정리 카드.
+ * 결과 화면 — 코스별 진도 고리, 지나온 기관, 문항별 풀이 기록(한 번에 맞혔는지/몇 번 틀렸는지),
+ * 두 코스를 모두 마치면 통합 정리 카드.
  */
 import type { CourseId, SaveData } from "../types";
-import { COURSES } from "../data/courses";
+import { COURSES, COURSE_ORDER } from "../data/courses";
+import { ICON } from "./assets";
+import { courseStats } from "./HomeScreen";
 
 export interface ResultScreenCallbacks {
   onHome(): void;
   onRestartCourse(courseId: CourseId): void;
+  onGotoStep(courseId: CourseId, stepIndex: number): void;
 }
 
 export interface ResultScreenHandle {
@@ -15,101 +18,83 @@ export interface ResultScreenHandle {
   update(save: SaveData): void;
 }
 
-const ACCENT_DEEP: Record<CourseId, string> = {
-  glucose: "#f76707",
-  oxygen: "#1971c2",
-};
-
-const COURSE_ORDER: readonly CourseId[] = ["glucose", "oxygen"];
-
-function quizTotals(courseId: CourseId, save: SaveData): { solved: number; total: number } {
-  const ids = Object.keys(COURSES[courseId].quizzes);
-  const solved = ids.filter((id) => save[courseId].quizResults[id]?.solved === true).length;
-  return { solved, total: ids.length };
-}
-
-function isCompleted(courseId: CourseId, save: SaveData): boolean {
-  const course = COURSES[courseId];
-  return (
-    course.steps.length > 0 &&
-    save[courseId].visitedStepIds.length >= course.steps.length &&
-    quizTotals(courseId, save).solved === quizTotals(courseId, save).total
-  );
-}
+const strip = (html: string): string => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 export function createResultScreen(cb: ResultScreenCallbacks): ResultScreenHandle {
   const root = document.createElement("section");
   root.className = "screen screen-result";
   root.innerHTML = `
     <div class="result-scroll">
-      <section class="result-card glass" aria-label="탐험 결과">
-        <h1 class="result-title">탐험 결과</h1>
-        <div class="result-unified" data-role="unified" hidden>
-          <h2>통합 정리 · 두 여행이 만났습니다!</h2>
-          <p class="unified-eq">
-            <em class="t-glucose">포도당</em> + <em class="t-oxygen">산소</em>
-            → <b>에너지</b> + <b>이산화 탄소</b> + <b>물</b>
-          </p>
-          <p class="unified-note">
-            세포에서 일어나는 이 반응을 <b>세포호흡</b>이라고 해요.
-            만들어진 <b>이산화 탄소</b>는 <b>폐 → 날숨</b>으로,
-            <b>물과 요소</b>는 <b>콩팥 → 오줌</b>으로 몸 밖으로 나갑니다.
-          </p>
-        </div>
-        <div class="result-courses">
-          ${COURSE_ORDER.map(
-            (id) => `
-          <article class="result-row" data-course="${id}"
-            style="--accent:${COURSES[id].accentColor}; --accent-deep:${ACCENT_DEEP[id]}">
-            <div class="result-row-head">
-              <h3>${COURSES[id].title}</h3>
-              <span class="result-score" data-role="score"></span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-fill" data-role="fill"></div>
-            </div>
-            <p class="result-meta" data-role="meta"></p>
-            <button class="btn btn-ghost" data-action="restart">다시 배우기</button>
-          </article>`
-          ).join("")}
-        </div>
-        <div class="result-actions">
-          <button class="btn btn-primary" data-action="home">홈으로</button>
-        </div>
-      </section>
+      <div class="result-wrap">
+        <header class="result-head">
+          <button type="button" class="btn-icon" data-action="home" aria-label="홈으로">${ICON.home}</button>
+          <h1 class="result-title">학습 결과</h1>
+        </header>
+        <section class="unified panel" data-role="unified" hidden>
+          <p class="eyebrow">두 여행을 모두 마쳤어요</p>
+          <p class="unified-eq"><em data-accent="glucose">포도당</em> + <em data-accent="oxygen">산소</em> → 이산화 탄소 + 물 + <b>에너지</b></p>
+          <p class="unified-note">소화계와 호흡계가 받아들인 포도당과 산소를 순환계가 세포로 나르고, 세포호흡으로 에너지를 얻습니다. 이산화 탄소는 폐에서 날숨으로, 물과 요소는 콩팥에서 오줌으로 나가요.</p>
+        </section>
+        <div class="result-grid" data-role="grid"></div>
+      </div>
     </div>`;
 
   root.addEventListener("click", (e) => {
-    const target = e.target instanceof Element ? e.target.closest<HTMLElement>("[data-action]") : null;
+    const target = e.target instanceof Element ? e.target.closest<HTMLElement>("[data-action],[data-goto]") : null;
     if (target === null) return;
     if (target.dataset.action === "home") cb.onHome();
     else if (target.dataset.action === "restart") {
       const id = target.closest<HTMLElement>("[data-course]")?.dataset.course;
       if (id === "glucose" || id === "oxygen") cb.onRestartCourse(id);
+    } else if (target.dataset.goto !== undefined) {
+      const [courseId, index] = target.dataset.goto.split(":");
+      if (courseId === "glucose" || courseId === "oxygen") cb.onGotoStep(courseId, Number.parseInt(index ?? "0", 10));
     }
   });
 
   function update(save: SaveData): void {
-    for (const id of COURSE_ORDER) {
+    const grid = root.querySelector<HTMLElement>('[data-role="grid"]');
+    if (grid === null) return;
+    let allDone = true;
+    grid.innerHTML = COURSE_ORDER.map((id) => {
       const course = COURSES[id];
-      const row = root.querySelector<HTMLElement>(`.result-row[data-course="${id}"]`);
-      if (row === null) continue;
-      const visited = save[id].visitedStepIds.length;
-      const total = course.steps.length;
-      const q = quizTotals(id, save);
-      const pct = total === 0 ? 0 : Math.round((visited / total) * 100);
-
-      const fill = row.querySelector<HTMLElement>('[data-role="fill"]');
-      if (fill !== null) fill.style.width = `${pct}%`;
-      const score = row.querySelector<HTMLElement>('[data-role="score"]');
-      if (score !== null) score.textContent = `퀴즈 ${q.solved}/${q.total}`;
-      const meta = row.querySelector<HTMLElement>('[data-role="meta"]');
-      if (meta !== null) meta.textContent = `탐험 완료 ${visited}/${total}단계`;
-    }
+      const st = courseStats(course, save);
+      if (!st.done) allDone = false;
+      const results = save[id].quizResults;
+      const firstTry = Object.keys(course.quizzes).filter((q) => results[q]?.solved === true && results[q]?.wrongCount === 0).length;
+      const rows = course.steps
+        .map((step, index) => {
+          if (step.quizId === undefined) return "";
+          const quiz = course.quizzes[step.quizId];
+          if (quiz === undefined) return "";
+          const r = results[step.quizId];
+          const state = r?.solved !== true ? "todo" : r.wrongCount === 0 ? "perfect" : "retry";
+          const badge = state === "todo" ? "아직" : state === "perfect" ? "한 번에" : `오답 ${r?.wrongCount ?? 0}`;
+          return `<li><button type="button" class="review-row is-${state}" data-goto="${id}:${index}">
+            <span class="review-mark">${state === "todo" ? index + 1 : ICON.check}</span>
+            <span class="review-text"><small>${step.title}</small>${strip(quiz.question)}</span>
+            <span class="review-badge">${badge}</span></button></li>`;
+        })
+        .join("");
+      return `
+      <article class="result-card panel" data-course="${id}" data-accent="${id}">
+        <div class="result-card-head">
+          <div class="ring ring-lg${st.done ? " is-done" : ""}" style="--pct:${st.pct}" role="img" aria-label="진도 ${st.pct}%"><span>${st.pct}<small>%</small></span></div>
+          <div>
+            <h2 class="course-name">${course.title}</h2>
+            <p class="course-meta">단계 ${st.visited}/${st.steps} · 퀴즈 ${st.solved}/${st.quizzes} · 한 번에 맞힌 문제 ${firstTry}</p>
+          </div>
+        </div>
+        <ol class="route-chips">${course.journeySummary.map((j) => `<li>${j.label}</li>`).join("")}</ol>
+        <h3 class="block-title">문항별 기록 <small>눌러서 그 단계로 이동</small></h3>
+        <ul class="review-list">${rows}</ul>
+        <div class="result-actions">
+          <button type="button" class="btn btn-quiet" data-action="restart">${ICON.replay}<span>처음부터 다시</span></button>
+        </div>
+      </article>`;
+    }).join("");
     const unified = root.querySelector<HTMLElement>('[data-role="unified"]');
-    if (unified !== null) {
-      unified.hidden = !(isCompleted("glucose", save) && isCompleted("oxygen", save));
-    }
+    if (unified !== null) unified.hidden = !allDone;
   }
 
   return { root, update };

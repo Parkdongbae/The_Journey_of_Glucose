@@ -1,154 +1,160 @@
-/// <reference types="vite/client" />
 /**
- * 홈 화면 — 앱 머리글, 마스코트 썸네일이 달린 코스 카드 2장,
- * 자유 탐색 카드, 귀속 표기 + 학습 기록 초기화 푸터.
+ * 홈 화면 — 왼쪽에 제목·이어서 하기·코스 카드, 오른쪽에 천천히 도는 3D 몸.
+ * 코스 카드에는 지나가는 기관 순서와 실제 진도가 함께 보인다.
  */
-import type { Course, CourseId, SaveData } from "../types";
-import { COURSES } from "../data/courses";
-import glucoseThumb from "../../images/포도당_기본.jpg";
-import oxygenThumb from "../../images/oxygen/Oxygen Mascot Character.jpg";
+import type { Course, CourseId, SaveData, ThemeName } from "../types";
+import { COURSES, COURSE_ORDER } from "../data/courses";
+import { figureUrl, ICON } from "./assets";
 
 export interface HomeScreenCallbacks {
   onStartCourse(courseId: CourseId): void;
+  onRestartCourse(courseId: CourseId): void;
   onExplore(): void;
-  onShowResult(courseId: CourseId): void;
+  onShowResult(): void;
   onResetProgress(): void;
+  onToggleTheme(): void;
 }
 
 export interface HomeScreenHandle {
   root: HTMLElement;
-  update(save: SaveData): void;
+  update(save: SaveData, theme: ThemeName): void;
 }
 
-/** 코스별 카드 강조색 짝(그라데이션 끝점) */
-const ACCENT_DEEP: Record<CourseId, string> = {
-  glucose: "#f76707",
-  oxygen: "#1971c2",
+const MASCOT: Record<CourseId, { key: string; alt: string }> = {
+  glucose: { key: "mGlucose", alt: "포도당 캐릭터" },
+  oxygen: { key: "mOxygen", alt: "산소 캐릭터" },
 };
 
-const THUMBS: Record<CourseId, { src: string; className: string; alt: string }> = {
-  glucose: { src: glucoseThumb, className: "", alt: "포도당 마스코트" },
-  oxygen: { src: oxygenThumb, className: "thumb-oxygen", alt: "산소 마스코트" },
-};
-
-const COURSE_ORDER: readonly CourseId[] = ["glucose", "oxygen"];
-
-function quizTotals(course: Course, save: SaveData): { solved: number; total: number } {
-  const ids = Object.keys(course.quizzes);
-  const solved = ids.filter((id) => save[course.id].quizResults[id]?.solved === true).length;
-  return { solved, total: ids.length };
-}
-
-function isCompleted(course: Course, save: SaveData): boolean {
-  const visited = save[course.id].visitedStepIds.length >= course.steps.length;
-  const q = quizTotals(course, save);
-  return course.steps.length > 0 && visited && q.solved === q.total;
+export function courseStats(course: Course, save: SaveData): {
+  visited: number;
+  steps: number;
+  solved: number;
+  quizzes: number;
+  pct: number;
+  done: boolean;
+} {
+  const p = save[course.id];
+  const ids = new Set(course.steps.map((s) => s.id));
+  const visited = p.visitedStepIds.filter((id) => ids.has(id)).length;
+  const quizIds = Object.keys(course.quizzes);
+  const solved = quizIds.filter((id) => p.quizResults[id]?.solved === true).length;
+  const total = course.steps.length + quizIds.length;
+  const pct = total === 0 ? 0 : Math.round(((visited + solved) / total) * 100);
+  return { visited, steps: course.steps.length, solved, quizzes: quizIds.length, pct, done: pct >= 100 };
 }
 
 function courseCardHtml(course: Course): string {
-  const thumb = THUMBS[course.id];
+  const m = MASCOT[course.id];
+  const route = course.journeySummary
+    .map((j) => `<li>${j.label}</li>`)
+    .join("");
   return `
-  <article class="course-card" data-course="${course.id}"
-    style="--accent:${course.accentColor}; --accent-deep:${ACCENT_DEEP[course.id]}">
-    <div class="course-head">
-      <div class="course-thumb">
-        <img class="${thumb.className}" src="${thumb.src}" alt="${thumb.alt}" draggable="false" />
-      </div>
-      <div>
+  <article class="course-card panel" data-course="${course.id}" data-accent="${course.id}">
+    <div class="course-top">
+      <div class="mascot mascot-${course.id}"><img src="${figureUrl(m.key)}" alt="${m.alt}" draggable="false" /></div>
+      <div class="course-heading">
         <h2 class="course-name">${course.title}</h2>
         <p class="course-sub">${course.subtitle}</p>
       </div>
+      <div class="ring" data-role="ring" role="img"><span data-role="pct"></span></div>
     </div>
-    <div class="course-progress">
-      <div class="progress-track" role="progressbar"
-        aria-label="${course.title} 탐험 진도" data-role="track">
-        <div class="progress-fill" data-role="fill"></div>
+    <ol class="route-chips" aria-label="${course.title}에서 지나가는 기관">${route}</ol>
+    <div class="course-bottom">
+      <p class="course-meta" data-role="meta"></p>
+      <div class="course-actions">
+        <button type="button" class="btn btn-quiet" data-action="restart" hidden>처음부터</button>
+        <button type="button" class="btn btn-primary" data-action="start"><span data-role="start-label"></span>${ICON.arrowRight}</button>
       </div>
-      <p class="progress-meta" data-role="meta"></p>
-    </div>
-    <div class="course-actions">
-      <button class="btn btn-primary" data-action="start"></button>
-      <button class="btn btn-ghost" data-action="result" hidden>결과 보기</button>
     </div>
   </article>`;
 }
 
-export function createHomeScreen(callbacks: HomeScreenCallbacks): HomeScreenHandle {
+export function createHomeScreen(cb: HomeScreenCallbacks): HomeScreenHandle {
   const root = document.createElement("section");
   root.className = "screen screen-home";
   root.innerHTML = `
     <div class="home-scroll">
-      <header class="home-header">
-        <h1 class="app-title"><em class="t-glucose">포도당</em>과 <em class="t-oxygen">산소</em>의 여행</h1>
-        <p class="app-subtitle">3D 인체 탐험</p>
-      </header>
-      <div class="course-grid">
-        ${courseCardHtml(COURSES.glucose)}
-        ${courseCardHtml(COURSES.oxygen)}
-        <article class="course-card explore-card" style="--accent:var(--c-purple); --accent-deep:#6741d9">
-          <div class="course-head">
-            <div class="course-thumb explore-thumb" aria-hidden="true">
-              <span class="explore-icon"></span>
-            </div>
-            <div>
-              <h2 class="course-name">자유 탐색</h2>
-              <p class="course-sub">기관을 클릭해 몸속을 직접 탐험해요</p>
-            </div>
-          </div>
-          <div class="course-actions">
-            <button class="btn btn-primary" data-action="explore">탐색하기</button>
-          </div>
-        </article>
+      <div class="home-col">
+        <header class="home-header">
+          <p class="eyebrow">중학교 과학 · 동물과 에너지</p>
+          <h1 class="app-title"><em data-accent="glucose">포도당</em>과 <em data-accent="oxygen">산소</em>의 여행</h1>
+          <p class="app-lead">떡볶이 한 입과 숨 한 번이 몸속에서 어떻게 <b>에너지</b>가 되는지, 3D 인체 속을 따라가며 배워요.</p>
+        </header>
+
+        <div class="course-list">
+          ${COURSE_ORDER.map((id) => courseCardHtml(COURSES[id])).join("")}
+        </div>
+
+        <div class="home-extra">
+          <button type="button" class="tile panel" data-action="explore" data-accent="explore">
+            <span class="tile-icon">${ICON.compass}</span>
+            <span class="tile-text"><b>자유 탐색</b><small>기관을 눌러 이름과 하는 일을 살펴봐요</small></span>
+          </button>
+          <button type="button" class="tile panel" data-action="result" data-accent="result">
+            <span class="tile-icon">${ICON.trophy}</span>
+            <span class="tile-text"><b>학습 결과</b><small data-role="result-meta"></small></span>
+          </button>
+        </div>
+
+        <footer class="home-footer">
+          <span>3D 인체 모델: Z-Anatomy (CC BY-SA 4.0)</span>
+          <span class="home-footer-actions">
+            <button type="button" class="btn-link" data-action="theme" data-role="theme-btn"></button>
+            <button type="button" class="btn-link" data-action="reset">학습 기록 초기화</button>
+          </span>
+        </footer>
       </div>
-      <footer class="home-footer">
-        <span class="attribution">3D 골격 모델: Z-Anatomy (CC BY-SA 4.0)</span>
-        <button class="btn btn-text" data-action="reset">학습 기록 초기화</button>
-      </footer>
+      <p class="home-hint" aria-hidden="true">${ICON.pointer} 몸을 끌어서 돌려 보세요</p>
     </div>`;
 
   root.addEventListener("click", (e) => {
-    const target = e.target instanceof HTMLElement ? e.target.closest<HTMLElement>("[data-action]") : null;
+    const target = e.target instanceof Element ? e.target.closest<HTMLElement>("[data-action]") : null;
     if (target === null) return;
     const action = target.dataset.action;
-    if (action === "explore") {
-      callbacks.onExplore();
-      return;
-    }
-    if (action === "reset") {
-      callbacks.onResetProgress();
-      return;
-    }
-    if (action === "start" || action === "result") {
+    if (action === "explore") cb.onExplore();
+    else if (action === "result") cb.onShowResult();
+    else if (action === "reset") cb.onResetProgress();
+    else if (action === "theme") cb.onToggleTheme();
+    else if (action === "start" || action === "restart") {
       const id = target.closest<HTMLElement>("[data-course]")?.dataset.course;
       if (id !== "glucose" && id !== "oxygen") return;
-      if (action === "start") callbacks.onStartCourse(id);
-      else callbacks.onShowResult(id);
+      if (action === "start") cb.onStartCourse(id);
+      else cb.onRestartCourse(id);
     }
   });
 
-  function update(save: SaveData): void {
+  const q = <T extends HTMLElement>(scope: ParentNode, sel: string): T | null => scope.querySelector<T>(sel);
+
+  function update(save: SaveData, theme: ThemeName): void {
+    let solvedAll = 0;
+    let quizAll = 0;
     for (const id of COURSE_ORDER) {
-      const card = root.querySelector<HTMLElement>(`.course-card[data-course="${id}"]`);
+      const card = q<HTMLElement>(root, `.course-card[data-course="${id}"]`);
       if (card === null) continue;
-      const course = COURSES[id];
-      const progress = save[id];
-      const visited = progress.visitedStepIds.length;
-      const total = course.steps.length;
-      const q = quizTotals(course, save);
-      const pct = total === 0 ? 0 : Math.round((visited / total) * 100);
+      const st = courseStats(COURSES[id], save);
+      solvedAll += st.solved;
+      quizAll += st.quizzes;
 
-      const fill = card.querySelector<HTMLElement>('[data-role="fill"]');
-      if (fill !== null) fill.style.width = `${pct}%`;
-
-      const meta = card.querySelector<HTMLElement>('[data-role="meta"]');
-      if (meta !== null) meta.textContent = `탐험 ${visited}/${total}단계 · 퀴즈 ${q.solved}/${q.total}`;
-
-      const startBtn = card.querySelector<HTMLButtonElement>('[data-action="start"]');
-      if (startBtn !== null) startBtn.textContent = visited === 0 ? "시작하기" : "이어하기";
-
-      const resultBtn = card.querySelector<HTMLButtonElement>('[data-action="result"]');
-      if (resultBtn !== null) resultBtn.hidden = !isCompleted(course, save);
+      const ring = q<HTMLElement>(card, '[data-role="ring"]');
+      if (ring !== null) {
+        ring.style.setProperty("--pct", String(st.pct));
+        ring.setAttribute("aria-label", `진도 ${st.pct}%`);
+        ring.classList.toggle("is-done", st.done);
+      }
+      const pct = q<HTMLElement>(card, '[data-role="pct"]');
+      if (pct !== null) pct.innerHTML = st.done ? ICON.check : `${st.pct}<small>%</small>`;
+      const meta = q<HTMLElement>(card, '[data-role="meta"]');
+      if (meta !== null) meta.textContent = `${st.steps}단계 · 퀴즈 ${st.solved}/${st.quizzes}`;
+      const label = q<HTMLElement>(card, '[data-role="start-label"]');
+      const started = st.visited > 0;
+      if (label !== null) label.textContent = st.done ? "다시 보기" : started ? "이어서 하기" : "시작하기";
+      const restart = q<HTMLButtonElement>(card, '[data-action="restart"]');
+      if (restart !== null) restart.hidden = !started || st.done;
     }
+    const resultMeta = q<HTMLElement>(root, '[data-role="result-meta"]');
+    if (resultMeta !== null) resultMeta.textContent = `퀴즈 ${solvedAll}/${quizAll} 해결`;
+    const themeBtn = q<HTMLElement>(root, '[data-role="theme-btn"]');
+    if (themeBtn !== null) themeBtn.textContent = theme === "dark" ? "밝은 화면으로" : "어두운 화면으로";
   }
 
   return { root, update };

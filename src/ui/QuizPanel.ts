@@ -1,171 +1,163 @@
 /**
- * 퀴즈 패널 — 한 번에 하나의 퀴즈를 담는 오버레이(데스크톱 우측 카드 / ≤760px 바텀시트).
- * kind별 렌더: mcq · ox · organClick(3D 펄스+클릭 판정) · order(순서 배열+경로 재생 보상).
- * 정답 판정 즉시 onSolved로 진도 저장을 위임하고, 해설은 정답 후에만 노출한다.
+ * 퀴즈 패널 — 수업 화면 오른쪽 패널 자리에 들어가 한 번에 한 문제를 보여 준다.
+ * 종류: 객관식(보기 순서 매번 섞음) · O/X · 기관 찾기(3D에서 직접 누르기) · 순서 맞추기.
+ * 틀리면 고른 보기에 맞는 힌트를 주고 바로 다시 고를 수 있다. 맞히면 해설과 "다음 단계".
  */
-import type { McqQuiz, OrganClickQuiz, OrderQuiz, OxQuiz, Quiz, SceneApi } from "../types";
+import type { CourseId, McqQuiz, OrganClickQuiz, OrderQuiz, OxQuiz, Quiz, Scene } from "../types";
 import { organLabel } from "../data/organs";
+import { figureUrl, ICON } from "./assets";
 
 export interface QuizPanelCallbacks {
-  scene: SceneApi;
+  scene: Scene;
   onSolved(quizId: string, wrongCount: number): void;
-  /** 닫기 버튼/계속하기 등 패널 스스로 닫고 싶을 때 — 앱이 정리 후 닫아준다 */
+  /** 설명으로 돌아가기 */
   onRequestClose(): void;
+  /** 맞힌 뒤 다음 단계로 */
+  onNext(): void;
+}
+
+export interface QuizOpenOptions {
+  courseId: CourseId;
+  wrongCount: number;
+  alreadySolved: boolean;
+  isLastStep: boolean;
 }
 
 export interface QuizPanelHandle {
   root: HTMLElement;
-  open(quiz: Quiz, startWrongCount: number): void;
+  open(quiz: Quiz, opts: QuizOpenOptions): void;
   close(): void;
   isOpen(): boolean;
 }
 
-const ICON_CLOSE = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
-
 const QUIZ_TAGS: Record<Quiz["kind"], string> = {
   mcq: "객관식",
-  ox: "O/X 퀴즈",
+  ox: "O / X",
   organClick: "기관 찾기",
   order: "순서 맞추기",
 };
 
-/** 퀴즈 id에 대해 항상 같은 셔플 결과를 내는 시드 (세션 내 순서 고정) */
-function hashString(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
+const MASCOT: Record<CourseId, { ok: string; bad: string }> = {
+  glucose: { ok: "mGlucoseJoy", bad: "mGlucoseWow" },
+  oxygen: { ok: "mOxygen", bad: "mOxygen" },
+};
 
-function stableShuffle<T>(items: readonly T[], seedKey: string): T[] {
+function shuffled<T>(items: readonly T[]): T[] {
   const arr = items.slice();
-  let seed = hashString(seedKey) || 1; // xorshift32 시드 0 금지
-  const rand = (): number => {
-    seed ^= seed << 13;
-    seed ^= seed >>> 17;
-    seed ^= seed << 5;
-    return (seed >>> 0) / 4294967296;
-  };
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
+    const j = Math.floor(Math.random() * (i + 1));
     const a = arr[i] as T;
-    const b = arr[j] as T;
-    arr[i] = b;
+    arr[i] = arr[j] as T;
     arr[j] = a;
   }
   return arr;
 }
 
+function requireEl<T extends Element>(scope: ParentNode, selector: string): T {
+  const el = scope.querySelector<T>(selector);
+  if (el === null) throw new Error(`QuizPanel: 요소를 찾을 수 없음 — ${selector}`);
+  return el;
+}
+
 export function createQuizPanel(cb: QuizPanelCallbacks): QuizPanelHandle {
-  const root = document.createElement("div");
-  root.className = "quiz-overlay";
+  const root = document.createElement("section");
+  root.className = "quiz";
   root.hidden = true;
+  root.setAttribute("aria-label", "퀴즈");
   root.innerHTML = `
-    <div class="quiz-pill" role="status">경로 재생 중…</div>
-    <section class="quiz-card glass" aria-label="퀴즈">
+    <div class="quiz-scroll">
       <header class="quiz-head">
         <span class="quiz-tag"></span>
-        <button class="btn-icon quiz-close" aria-label="퀴즈 닫기">${ICON_CLOSE}</button>
+        <button type="button" class="btn-chip quiz-back">${ICON.arrowLeft}설명 보기</button>
       </header>
       <p class="quiz-question"></p>
       <div class="quiz-content"></div>
-      <div class="quiz-banner" role="status" hidden></div>
-      <p class="quiz-explanation" hidden></p>
-      <footer class="quiz-footer">
-        <button class="btn btn-ghost quiz-retry" hidden>다시 풀어보기</button>
-        <button class="btn btn-primary quiz-continue" hidden>계속하기</button>
-      </footer>
-    </section>`;
+      <div class="quiz-feedback" role="status" aria-live="polite" hidden>
+        <img class="quiz-mascot" alt="" draggable="false" />
+        <div class="quiz-feedback-text">
+          <b class="quiz-verdict"></b>
+          <p class="quiz-explain"></p>
+        </div>
+      </div>
+    </div>
+    <footer class="lesson-nav quiz-nav">
+      <span class="quiz-tries"></span>
+      <button type="button" class="btn btn-primary quiz-next" hidden><span class="quiz-next-label"></span>${ICON.arrowRight}</button>
+    </footer>`;
 
-  const card = requireEl<HTMLElement>(root, ".quiz-card");
   const tagEl = requireEl<HTMLElement>(root, ".quiz-tag");
   const questionEl = requireEl<HTMLElement>(root, ".quiz-question");
   const contentEl = requireEl<HTMLElement>(root, ".quiz-content");
-  const bannerEl = requireEl<HTMLElement>(root, ".quiz-banner");
-  const explanationEl = requireEl<HTMLElement>(root, ".quiz-explanation");
-  const retryBtn = requireEl<HTMLButtonElement>(root, ".quiz-retry");
-  const continueBtn = requireEl<HTMLButtonElement>(root, ".quiz-continue");
+  const feedbackEl = requireEl<HTMLElement>(root, ".quiz-feedback");
+  const mascotEl = requireEl<HTMLImageElement>(root, ".quiz-mascot");
+  const verdictEl = requireEl<HTMLElement>(root, ".quiz-verdict");
+  const explainEl = requireEl<HTMLElement>(root, ".quiz-explain");
+  const triesEl = requireEl<HTMLElement>(root, ".quiz-tries");
+  const nextBtn = requireEl<HTMLButtonElement>(root, ".quiz-next");
+  const nextLabel = requireEl<HTMLElement>(root, ".quiz-next-label");
+  const scrollEl = requireEl<HTMLElement>(root, ".quiz-scroll");
 
   let current: Quiz | null = null;
+  let opts: QuizOpenOptions = { courseId: "glucose", wrongCount: 0, alreadySolved: false, isLastStep: false };
   let wrongCount = 0;
   let resolved = false;
   let gen = 0;
   const pulsed = new Set<string>();
-  /** order 퀴즈: 현재 화면 표시 순서(정답 여부와 무관) */
+  /** 객관식: 화면 순서 → 원래 보기 번호 */
+  let mcqOrder: number[] = [];
+  /** 순서 맞추기: 현재 화면 순서 */
   let currentOrder: string[] = [];
 
   root.addEventListener("click", (e) => {
     const target = e.target instanceof Element ? e.target : null;
     if (target === null) return;
-    if (target.closest(".quiz-close") !== null) {
-      cb.onRequestClose();
-      return;
-    }
-    if (target.closest(".quiz-continue") !== null) {
-      cb.onRequestClose();
-      return;
-    }
-    if (target.closest(".quiz-retry") !== null) {
-      resetWrongFeedback();
-      resetKindWrongState();
-      return;
-    }
+    if (target.closest(".quiz-back") !== null) return cb.onRequestClose();
+    if (target.closest(".quiz-next") !== null) return cb.onNext();
+    const quiz = current;
+    if (quiz === null) return;
     const choice = target.closest<HTMLButtonElement>(".quiz-choice[data-choice]");
-    if (choice !== null && current?.kind === "mcq") handleMcqPick(current, Number.parseInt(choice.dataset.choice ?? "", 10));
-    const ox = target.closest<HTMLButtonElement>(".btn-ox[data-ox]");
-    if (ox !== null && current?.kind === "ox") handleOxPick(current, ox.dataset.ox === "true");
-    const move = target.closest<HTMLButtonElement>(".order-btns [data-move]");
-    if (move !== null && current?.kind === "order") handleOrderMove(current, move.dataset.move === "up", move);
-    if (target.closest(".quiz-play") !== null && current?.kind === "order") void handleOrderPlay(current);
+    if (choice !== null && quiz.kind === "mcq") handleMcqPick(quiz, Number.parseInt(choice.dataset.choice ?? "", 10), choice);
+    const ox = target.closest<HTMLButtonElement>(".ox-btn[data-ox]");
+    if (ox !== null && quiz.kind === "ox") handleOxPick(quiz, ox.dataset.ox === "true", ox);
+    const move = target.closest<HTMLButtonElement>("[data-move]");
+    if (move !== null && quiz.kind === "order") handleOrderMove(quiz, move.dataset.move === "up", move);
+    if (target.closest(".quiz-check") !== null && quiz.kind === "order") void handleOrderCheck(quiz);
   });
 
   // ---------- 공용 피드백 ----------
-  function showBanner(kind: "ok" | "bad", text: string): void {
-    bannerEl.className = `quiz-banner ${kind}`;
-    bannerEl.textContent = text;
-    bannerEl.hidden = false;
+  function showFeedback(kind: "ok" | "bad", verdict: string, text: string): void {
+    feedbackEl.hidden = false;
+    feedbackEl.dataset.kind = kind;
+    mascotEl.src = figureUrl(MASCOT[opts.courseId][kind]);
+    mascotEl.className = `quiz-mascot mascot-${opts.courseId}`;
+    verdictEl.textContent = verdict;
+    explainEl.textContent = text;
+    if (kind === "bad") {
+      feedbackEl.classList.remove("shake");
+      void feedbackEl.offsetWidth; // 애니메이션 재시작
+      feedbackEl.classList.add("shake");
+    }
+    scrollEl.scrollTop = scrollEl.scrollHeight;
   }
 
-  function showExplanation(text: string): void {
-    explanationEl.textContent = text;
-    explanationEl.hidden = false;
+  function showTries(): void {
+    triesEl.textContent = resolved ? (wrongCount === 0 ? "한 번에 맞혔어요" : `${wrongCount}번 틀리고 맞혔어요`) : wrongCount > 0 ? `오답 ${wrongCount}번` : "";
   }
 
-  function resetWrongFeedback(): void {
-    bannerEl.hidden = true;
-    retryBtn.hidden = true;
-  }
-
-  function shake(): void {
-    card.classList.remove("shake");
-    void card.offsetWidth; // 애니메이션 재시작 트릭
-    card.classList.add("shake");
+  function markWrong(hint: string): void {
+    wrongCount++;
+    showFeedback("bad", "다시 생각해 볼까요?", hint);
+    showTries();
   }
 
   function markSolved(quiz: Quiz): void {
-    if (resolved) return;
+    const first = !resolved;
     resolved = true;
-    cb.onSolved(quiz.id, wrongCount);
-  }
-
-  /** 오답 상태 초기화는 kind별로 다르게 동작 */
-  function resetKindWrongState(): void {
-    const quiz = current;
-    if (quiz === null) return;
-    if (quiz.kind === "mcq") {
-      for (const btn of contentEl.querySelectorAll<HTMLButtonElement>(".quiz-choice.wrong")) {
-        btn.classList.remove("wrong");
-        btn.disabled = false;
-      }
-    } else if (quiz.kind === "ox") {
-      // O/X는 버튼이 항상 활성 상태라 별도 복구 없음
-    } else if (quiz.kind === "order") {
-      for (const row of contentEl.querySelectorAll<HTMLElement>(".order-row.order-wrong")) {
-        row.classList.remove("order-wrong");
-      }
-    }
+    if (first && !opts.alreadySolved) cb.onSolved(quiz.id, wrongCount);
+    showFeedback("ok", "정답이에요!", quiz.explanation);
+    nextLabel.textContent = opts.isLastStep ? "결과 보기" : "다음 단계";
+    nextBtn.hidden = false;
+    showTries();
   }
 
   function clearPulses(): void {
@@ -173,26 +165,27 @@ export function createQuizPanel(cb: QuizPanelCallbacks): QuizPanelHandle {
     pulsed.clear();
   }
 
-  // ---------- kind별 빌더 ----------
-  function open(quiz: Quiz, startWrongCount: number): void {
+  // ---------- 열기/닫기 ----------
+  function open(quiz: Quiz, o: QuizOpenOptions): void {
     clearPulses();
     cb.scene.setOrganInteractivity(false);
     gen++;
     current = quiz;
-    wrongCount = startWrongCount;
+    opts = o;
+    wrongCount = o.alreadySolved ? 0 : o.wrongCount;
     resolved = false;
-    root.classList.remove("quiz-min");
     root.hidden = false;
+    root.classList.remove("is-playing");
     tagEl.textContent = QUIZ_TAGS[quiz.kind];
     questionEl.innerHTML = quiz.question; // 데이터 파일의 신뢰된 HTML
-    bannerEl.hidden = true;
-    explanationEl.hidden = true;
-    retryBtn.hidden = true;
-    continueBtn.hidden = true;
+    feedbackEl.hidden = true;
+    nextBtn.hidden = true;
+    showTries();
     if (quiz.kind === "mcq") buildMcq(quiz);
-    else if (quiz.kind === "ox") buildOx(quiz);
+    else if (quiz.kind === "ox") buildOx();
     else if (quiz.kind === "organClick") buildOrganClick(quiz);
     else buildOrder(quiz);
+    scrollEl.scrollTop = 0;
   }
 
   function close(): void {
@@ -203,72 +196,69 @@ export function createQuizPanel(cb: QuizPanelCallbacks): QuizPanelHandle {
     current = null;
     resolved = false;
     root.hidden = true;
-    root.classList.remove("quiz-min");
   }
 
   function isOpen(): boolean {
-    return root.hidden === false;
+    return !root.hidden;
   }
 
   // ---------- 객관식 ----------
   function buildMcq(quiz: McqQuiz): void {
-    contentEl.innerHTML = `<ul class="quiz-choices">${quiz.choices
-      .map((c, i) => `<li><button class="quiz-choice" data-choice="${i}">${c}</button></li>`)
+    mcqOrder = shuffled(quiz.choices.map((_, i) => i));
+    contentEl.innerHTML = `<ul class="quiz-choices">${mcqOrder
+      .map(
+        (orig, shown) =>
+          `<li><button type="button" class="quiz-choice" data-choice="${orig}"><span class="choice-num">${shown + 1}</span><span>${quiz.choices[orig] ?? ""}</span></button></li>`,
+      )
       .join("")}</ul>`;
   }
 
-  function handleMcqPick(quiz: McqQuiz, index: number): void {
-    if (resolved || Number.isNaN(index)) return;
-    const btn = contentEl.querySelector<HTMLButtonElement>(`.quiz-choice[data-choice="${index}"]`);
-    if (btn === null || btn.disabled) return;
+  function handleMcqPick(quiz: McqQuiz, index: number, btn: HTMLButtonElement): void {
+    if (resolved || Number.isNaN(index) || btn.disabled) return;
     if (index === quiz.answerIndex) {
-      markSolved(quiz);
-      btn.classList.add("correct");
+      btn.classList.add("is-correct");
       for (const other of contentEl.querySelectorAll<HTMLButtonElement>(".quiz-choice")) other.disabled = true;
-      resetWrongFeedback();
-      showBanner("ok", "정답!");
-      showExplanation(quiz.explanation);
-      continueBtn.hidden = false;
+      markSolved(quiz);
     } else {
-      wrongCount++;
-      btn.classList.add("wrong");
+      btn.classList.add("is-wrong");
       btn.disabled = true;
-      showBanner("bad", "아쉬워요! 다시 생각해 보세요.");
-      retryBtn.hidden = false;
-      shake();
+      markWrong(quiz.hints?.[index] || "다른 보기를 골라 보세요.");
     }
   }
 
   // ---------- O/X ----------
-  function buildOx(_quiz: OxQuiz): void {
+  function buildOx(): void {
     contentEl.innerHTML = `<div class="ox-row">
-      <button class="btn btn-ox ox-yes" data-ox="true" aria-label="O, 참">O</button>
-      <button class="btn btn-ox ox-no" data-ox="false" aria-label="X, 거짓">X</button>
+      <button type="button" class="ox-btn ox-o" data-ox="true" aria-label="O, 맞다"><span>O</span><small>맞다</small></button>
+      <button type="button" class="ox-btn ox-x" data-ox="false" aria-label="X, 틀리다"><span>X</span><small>틀리다</small></button>
     </div>`;
   }
 
-  function handleOxPick(quiz: OxQuiz, picked: boolean): void {
-    if (resolved) return;
+  function handleOxPick(quiz: OxQuiz, picked: boolean, btn: HTMLButtonElement): void {
+    if (resolved || btn.disabled) return;
     if (picked === quiz.answer) {
+      btn.classList.add("is-correct");
+      for (const other of contentEl.querySelectorAll<HTMLButtonElement>(".ox-btn")) other.disabled = true;
       markSolved(quiz);
-      resetWrongFeedback();
-      showBanner("ok", "정답!");
-      showExplanation(quiz.explanation);
-      continueBtn.hidden = false;
-      if (quiz.replayOrganIds !== undefined) cb.scene.highlight(quiz.replayOrganIds);
+      if (quiz.replayOrganIds !== undefined) {
+        cb.scene.highlight(quiz.replayOrganIds);
+        cb.scene.setFocusLabels(quiz.replayOrganIds);
+      }
     } else {
-      wrongCount++;
-      showBanner("bad", "아쉬워요! 다시 생각해 보세요.");
-      retryBtn.hidden = false;
-      shake();
+      btn.classList.add("is-wrong");
+      btn.disabled = true;
+      markWrong(quiz.hint ?? "문장을 한 번 더 꼼꼼히 읽어 보세요.");
     }
   }
 
   // ---------- 기관 찾기 ----------
   function buildOrganClick(quiz: OrganClickQuiz): void {
-    contentEl.innerHTML = `<p class="quiz-hint">3D 몸에서 깜빡이는 기관을 직접 클릭하세요!</p>`;
+    contentEl.innerHTML = `<p class="quiz-hint">${ICON.pointer}<span>3D 몸에서 <b>깜빡이는 기관</b> 가운데 하나를 직접 눌러 보세요. 끌어서 돌려 볼 수도 있어요.</span></p>
+      <ul class="organ-options">${quiz.optionOrganIds.map((id) => `<li data-organ="${id}">${organLabel(id)}</li>`).join("")}</ul>`;
     if (quiz.view !== undefined) void cb.scene.flyTo(quiz.view).catch(() => {});
+    cb.scene.clearHighlight();
     cb.scene.isolateOrgans(quiz.optionOrganIds);
+    cb.scene.setFocusLabels([]);
     for (const id of quiz.optionOrganIds) {
       cb.scene.pulseOrgan(id, true);
       pulsed.add(id);
@@ -276,45 +266,48 @@ export function createQuizPanel(cb: QuizPanelCallbacks): QuizPanelHandle {
     cb.scene.setOrganInteractivity(true);
     cb.scene.onOrganClick((organId) => {
       if (current !== quiz || resolved) return;
+      if (!quiz.optionOrganIds.includes(organId)) return;
+      const chip = contentEl.querySelector<HTMLElement>(`[data-organ="${organId}"]`);
       if (organId === quiz.answerOrganId) {
-        markSolved(quiz);
+        chip?.classList.add("is-correct");
         clearPulses();
         cb.scene.setOrganInteractivity(false);
-        resetWrongFeedback();
-        showBanner("ok", "정답!");
-        showExplanation(quiz.explanation);
-        continueBtn.hidden = false;
+        cb.scene.highlight([organId]);
+        cb.scene.setFocusLabels([organId]);
+        markSolved(quiz);
       } else {
-        wrongCount++;
-        // 방금 틀린 기관은 보기 목록에서 제외하고 남은 보기 라벨을 안내
-        const remaining = quiz.optionOrganIds.filter((id) => id !== organId).map(organLabel);
-        showBanner("bad", `다시 시도! 남은 보기: ${remaining.join(", ")}`);
-        shake();
+        if (chip?.classList.contains("is-wrong") === true) return;
+        chip?.classList.add("is-wrong");
+        cb.scene.pulseOrgan(organId, false);
+        pulsed.delete(organId);
+        markWrong(`방금 누른 곳은 ${organLabel(organId)}예요. ${quiz.hint ?? "다른 기관을 눌러 보세요."}`);
       }
     });
   }
 
   // ---------- 순서 맞추기 ----------
   function buildOrder(quiz: OrderQuiz): void {
-    const labels = new Map(quiz.items.map((it) => [it.id, it.label]));
-    currentOrder = stableShuffle(quiz.items, quiz.id).map((it) => it.id);
+    do {
+      currentOrder = shuffled(quiz.items.map((it) => it.id));
+    } while (currentOrder.every((id, i) => id === quiz.answerOrder[i]) && quiz.items.length > 1);
     contentEl.innerHTML = `<ol class="order-list"></ol>
-      <button class="btn btn-primary quiz-play">재생</button>`;
-    renderOrderRows(labels);
+      <button type="button" class="btn btn-primary quiz-check">${ICON.check}확인</button>`;
+    renderOrderRows(quiz);
   }
 
-  function renderOrderRows(labels: Map<string, string>): void {
+  function renderOrderRows(quiz: OrderQuiz, wrongIndex = -1): void {
     const list = contentEl.querySelector<HTMLOListElement>(".order-list");
     if (list === null) return;
+    const labels = new Map(quiz.items.map((it) => [it.id, it.label]));
     list.innerHTML = currentOrder
       .map((id, i) => {
         const label = labels.get(id) ?? id;
-        return `<li class="order-row" data-oid="${id}">
+        return `<li class="order-row${i === wrongIndex ? " is-wrong" : ""}" data-oid="${id}">
           <span class="order-num" aria-hidden="true">${i + 1}</span>
           <span class="order-label">${label}</span>
           <span class="order-btns">
-            <button class="btn-icon" data-move="up" aria-label="${label} 위로 이동"${i === 0 ? " disabled" : ""}>↑</button>
-            <button class="btn-icon" data-move="down" aria-label="${label} 아래로 이동"${i === currentOrder.length - 1 ? " disabled" : ""}>↓</button>
+            <button type="button" class="btn-icon" data-move="up" aria-label="${label} 위로"${i === 0 ? " disabled" : ""}>${ICON.up}</button>
+            <button type="button" class="btn-icon" data-move="down" aria-label="${label} 아래로"${i === currentOrder.length - 1 ? " disabled" : ""}>${ICON.down}</button>
           </span>
         </li>`;
       })
@@ -323,62 +316,44 @@ export function createQuizPanel(cb: QuizPanelCallbacks): QuizPanelHandle {
 
   function handleOrderMove(quiz: OrderQuiz, up: boolean, btn: HTMLElement): void {
     if (resolved) return;
-    const row = btn.closest<HTMLElement>(".order-row");
-    const id = row?.dataset.oid;
+    const id = btn.closest<HTMLElement>(".order-row")?.dataset.oid;
     if (id === undefined) return;
     const i = currentOrder.indexOf(id);
     const j = up ? i - 1 : i + 1;
     if (i < 0 || j < 0 || j >= currentOrder.length) return;
     const a = currentOrder[i] as string;
-    const b = currentOrder[j] as string;
-    currentOrder[i] = b;
+    currentOrder[i] = currentOrder[j] as string;
     currentOrder[j] = a;
-    const labels = new Map(quiz.items.map((it) => [it.id, it.label]));
-    renderOrderRows(labels);
+    renderOrderRows(quiz);
+    // 옮긴 항목의 같은 방향 버튼에 초점을 유지 (키보드 조작)
+    contentEl.querySelector<HTMLButtonElement>(`[data-oid="${id}"] [data-move="${up ? "up" : "down"}"]:not(:disabled)`)?.focus();
   }
 
-  async function handleOrderPlay(quiz: OrderQuiz): Promise<void> {
+  async function handleOrderCheck(quiz: OrderQuiz): Promise<void> {
     if (resolved) return;
-    for (const row of contentEl.querySelectorAll<HTMLElement>(".order-row.order-wrong")) {
-      row.classList.remove("order-wrong");
-    }
-    let firstWrong = -1;
-    for (let i = 0; i < quiz.answerOrder.length; i++) {
-      if (currentOrder[i] !== quiz.answerOrder[i]) {
-        firstWrong = i;
-        break;
-      }
-    }
+    const firstWrong = quiz.answerOrder.findIndex((id, i) => currentOrder[i] !== id);
     if (firstWrong >= 0) {
-      wrongCount++;
-      const rows = contentEl.querySelectorAll<HTMLElement>(".order-row");
-      const wrongRow = rows[firstWrong];
-      if (wrongRow !== undefined) wrongRow.classList.add("order-wrong");
-      showBanner("bad", "순서를 다시 보세요.");
-      shake();
+      renderOrderRows(quiz, firstWrong);
+      markWrong(`${firstWrong + 1}번째 자리부터 다시 살펴보세요.`);
       return;
     }
-    // 정답: 저장 → 패널 축소 → 경로 재생 보상 → 복원
-    markSolved(quiz);
+    // 정답: 순서대로 기관을 하나씩 비추며 보여 준 뒤 해설
+    resolved = true;
+    if (!opts.alreadySolved) cb.onSolved(quiz.id, wrongCount);
+    for (const b of contentEl.querySelectorAll<HTMLButtonElement>("button")) b.disabled = true;
     const myGen = gen;
-    root.classList.add("quiz-min");
+    root.classList.add("is-playing");
+    feedbackEl.hidden = true;
+    triesEl.textContent = "정답! 3D에서 순서대로 따라가 볼게요…";
     try {
-      await cb.scene.flyThroughOrganIds(quiz.answerOrder, 1.6);
+      await cb.scene.flyThroughOrganIds(quiz.answerOrder, 1.3);
     } catch {
-      // 재생 실패해도 정답 처리는 유지
+      // 재생이 끊겨도 정답 처리는 유지
     }
     if (gen !== myGen || current !== quiz) return;
-    root.classList.remove("quiz-min");
-    showBanner("ok", "정답!");
-    showExplanation(quiz.explanation);
-    continueBtn.hidden = false;
+    root.classList.remove("is-playing");
+    markSolved(quiz);
   }
 
   return { root, open, close, isOpen };
-}
-
-function requireEl<T extends Element>(scope: ParentNode, selector: string): T {
-  const el = scope.querySelector<T>(selector);
-  if (el === null) throw new Error(`QuizPanel: 요소를 찾을 수 없음 — ${selector}`);
-  return el;
 }

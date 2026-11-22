@@ -1,148 +1,181 @@
 /**
- * 자유 탐색 화면 — 상단 바(홈/제목), 우측 계통·뼈대 칩 패널,
- * 기관 클릭 시 뜨는 정보 카드.
+ * 자유 탐색 화면 — 왼쪽에 기관계별 기관 목록, 오른쪽에 고른 기관의 설명 카드.
+ * 목록에서 고르거나 3D 몸에서 직접 눌러 기관을 살펴보고, 그 기관이 나오는 수업 단계로 바로 갈 수 있다.
  */
-import type { SystemName } from "../types";
-
-export type ExploreLayer = "all" | SystemName;
+import { SYSTEM_LABELS, type CourseId, type OrganSystem, type SystemName } from "../types";
+import { ORGANS, ORGAN_MAP } from "../data/organs";
+import { COURSES, COURSE_ORDER } from "../data/courses";
+import { ICON } from "./assets";
 
 export interface ExplorePanelCallbacks {
   onHome(): void;
-  onLayerSelect(layer: ExploreLayer): void;
-  onSkeletonToggle(on: boolean): void;
-  onToggleLayerPanel(): void;
-  onOpacityChange(opacity: number): void;
-  onLabelsToggle(on: boolean): void;
+  onPickOrgan(organId: string): void;
+  onClearOrgan(): void;
+  onGotoStep(courseId: CourseId, stepIndex: number): void;
 }
 
 export interface ExplorePanelHandle {
   root: HTMLElement;
-  showOrgan(info: { label: string; description: string } | null): void;
-  setActiveLayer(layer: ExploreLayer): void;
-  setSkeleton(on: boolean): void;
-  setLayerPanelOpen(open: boolean): void;
-  isLayerPanelOpen(): boolean;
-  setLabels(on: boolean): void;
+  toolSlot: HTMLElement;
+  rail: HTMLElement;
+  side: HTMLElement;
+  topbar: HTMLElement;
+  showOrgan(organId: string | null): void;
+  setRailOpen(open: boolean): void;
 }
 
-const ICON_HOME = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>`;
-const ICON_MENU = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
+const SYSTEM_ORDER: readonly SystemName[] = ["digestive", "respiratory", "circulatory", "excretory"];
 
-const LAYERS: readonly { layer: ExploreLayer; label: string }[] = [
-  { layer: "all", label: "몸 전체" },
-  { layer: "digestive", label: "소화계" },
-  { layer: "respiratory", label: "호흡계" },
-  { layer: "circulatory", label: "순환계" },
-  { layer: "excretory", label: "배설계" },
-];
-
-export function createExplorePanel(cb: ExplorePanelCallbacks): ExplorePanelHandle {
-  const root = document.createElement("section");
-  root.className = "screen screen-explore";
-  root.innerHTML = `
-    <header class="hud-top glass">
-      <button class="btn-icon" data-action="home" aria-label="홈으로 이동">${ICON_HOME}</button>
-      <div class="hud-title"><span class="hud-course-name">자유 탐색</span></div>
-      <button class="btn-icon layer-toggle" data-action="toggle-layer" aria-label="계통 패널 열기 닫기">${ICON_MENU}</button>
-    </header>
-
-    <aside class="layer-panel glass" aria-label="표시할 계통 선택">
-      <h3 class="panel-title">몸속 계통</h3>
-      <div class="chip-group">
-        ${LAYERS.map((l) => `<button class="chip" data-layer="${l.layer}" aria-pressed="false">${l.label}</button>`).join("")}
-      </div>
-      <h3 class="panel-title">골격</h3>
-      <div class="chip-group">
-        <button class="chip" data-skeleton="on" aria-pressed="false">뼈대 보이기</button>
-      </div>
-      <label class="opacity-row">
-        <span>투명도</span>
-        <input class="opacity-slider" type="range" min="10" max="100" value="100" aria-label="계통 투명도" />
-      </label>
-      <button class="chip chip-wide" data-labels aria-pressed="false">기관 라벨</button>
-    </aside>
-
-    <aside class="organ-card glass" data-role="organ-card" hidden>
-      <h3 class="organ-name"></h3>
-      <p class="organ-desc"></p>
-      <button class="btn btn-ghost organ-close" data-action="close-organ">닫기</button>
-    </aside>`;
-
-  const layerPanel = requireEl<HTMLElement>(root, ".layer-panel");
-  const organCard = requireEl<HTMLElement>(root, '[data-role="organ-card"]');
-  const organName = requireEl<HTMLElement>(root, ".organ-name");
-  const organDesc = requireEl<HTMLElement>(root, ".organ-desc");
-  const skeletonChip = requireEl<HTMLButtonElement>(root, "[data-skeleton]");
-  const labelsChip = requireEl<HTMLButtonElement>(root, "[data-labels]");
-  const opacitySlider = requireEl<HTMLInputElement>(root, ".opacity-slider");
-  const chips = Array.from(root.querySelectorAll<HTMLButtonElement>(".layer-panel [data-layer]"));
-
-  root.addEventListener("click", (e) => {
-    const target = e.target instanceof Element ? e.target.closest<HTMLElement>("[data-action],[data-layer],[data-skeleton],[data-labels]") : null;
-    if (target === null) return;
-    const action = target.dataset.action;
-    if (action === "home") cb.onHome();
-    else if (action === "toggle-layer") cb.onToggleLayerPanel();
-    else if (action === "close-organ") showOrgan(null);
-    else if (target.dataset.labels !== undefined) {
-      const on = labelsChip.getAttribute("aria-pressed") !== "true";
-      labelsChip.setAttribute("aria-pressed", on ? "true" : "false");
-      labelsChip.classList.toggle("active", on);
-      cb.onLabelsToggle(on);
-    } else if (target.dataset.layer !== undefined) {
-      const layer = LAYERS.find((l) => l.layer === target.dataset.layer)?.layer;
-      if (layer !== undefined) cb.onLayerSelect(layer);
-    } else if (target.dataset.skeleton !== undefined) {
-      cb.onSkeletonToggle(skeletonChip.getAttribute("aria-pressed") !== "true");
-    }
-  });
-
-  function showOrgan(info: { label: string; description: string } | null): void {
-    if (info === null) {
-      organCard.hidden = true;
-      return;
-    }
-    organName.textContent = info.label;
-    organDesc.textContent = info.description;
-    organCard.hidden = false;
-  }
-
-  function setActiveLayer(layer: ExploreLayer): void {
-    for (const chip of chips) {
-      const active = chip.dataset.layer === layer;
-      chip.classList.toggle("active", active);
-      chip.setAttribute("aria-pressed", active ? "true" : "false");
-    }
-  }
-
-  function setSkeleton(on: boolean): void {
-    skeletonChip.classList.toggle("active", on);
-    skeletonChip.setAttribute("aria-pressed", on ? "true" : "false");
-    skeletonChip.textContent = on ? "뼈대 숨기기" : "뼈대 보이기";
-  }
-
-  function setLabels(on: boolean): void {
-    labelsChip.classList.toggle("active", on);
-    labelsChip.setAttribute("aria-pressed", on ? "true" : "false");
-  }
-
-  opacitySlider.addEventListener("input", () => {
-    cb.onOpacityChange(Number.parseInt(opacitySlider.value, 10) / 100);
-  });
-
-  function setLayerPanelOpen(open: boolean): void {
-    layerPanel.classList.toggle("layer-open", open);
-  }
-
-  function isLayerPanelOpen(): boolean {
-    return layerPanel.classList.contains("layer-open");
-  }
-
-  return { root, showOrgan, setActiveLayer, setSkeleton, setLayerPanelOpen, isLayerPanelOpen, setLabels };
+function systemLabel(system: OrganSystem): string {
+  return system === "cell" ? "세포" : SYSTEM_LABELS[system];
 }
 
 function requireEl<T extends Element>(scope: ParentNode, selector: string): T {
   const el = scope.querySelector<T>(selector);
   if (el === null) throw new Error(`ExplorePanel: 요소를 찾을 수 없음 — ${selector}`);
   return el;
+}
+
+/** 이 기관에 초점을 두는 수업 단계들 */
+function relatedSteps(organId: string): { courseId: CourseId; index: number; title: string; course: string }[] {
+  const out: { courseId: CourseId; index: number; title: string; course: string }[] = [];
+  for (const courseId of COURSE_ORDER) {
+    const course = COURSES[courseId];
+    course.steps.forEach((step, index) => {
+      if (step.focusOrganIds.includes(organId)) out.push({ courseId, index, title: step.title, course: course.title });
+    });
+  }
+  return out.slice(0, 4);
+}
+
+export function createExplorePanel(cb: ExplorePanelCallbacks): ExplorePanelHandle {
+  const root = document.createElement("section");
+  root.className = "screen screen-explore";
+  root.dataset.accent = "explore";
+
+  const groups = [...SYSTEM_ORDER, "cell" as const]
+    .map((system) => {
+      const organs = ORGANS.filter((o) => o.system === system);
+      if (organs.length === 0) return "";
+      return `<div class="rail-group">
+        <p class="rail-chapter" data-system="${system}">${systemLabel(system)}</p>
+        <ol>${organs
+          .map(
+            (o) => `<li><button type="button" class="rail-item" data-organ="${o.id}">
+              <span class="rail-swatch" style="background:#${o.color.toString(16).padStart(6, "0")}"></span>
+              <span class="rail-label">${o.label}</span></button></li>`,
+          )
+          .join("")}</ol>
+      </div>`;
+    })
+    .join("");
+
+  root.innerHTML = `
+    <header class="topbar panel">
+      <button type="button" class="btn-icon" data-action="home" aria-label="홈으로">${ICON.home}</button>
+      <button type="button" class="btn-icon rail-toggle" data-action="rail" aria-label="기관 목록" aria-expanded="false">${ICON.list}</button>
+      <div class="topbar-title">
+        <span class="course-dot" aria-hidden="true"></span>
+        <span class="topbar-name">자유 탐색</span>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-tools"></div>
+    </header>
+
+    <div class="rail-scrim" data-action="rail-close" hidden></div>
+    <nav class="rail panel" aria-label="기관 목록">
+      <div class="rail-head"><span>기관 목록</span><button type="button" class="btn-icon rail-close" data-action="rail-close" aria-label="목록 닫기">${ICON.close}</button></div>
+      <div class="rail-list">${groups}</div>
+    </nav>
+
+    <aside class="side side-explore panel">
+      <div class="organ-empty">
+        <span class="organ-empty-icon">${ICON.pointer}</span>
+        <p><b>기관을 골라 보세요</b></p>
+        <p>3D 몸에서 기관을 직접 누르거나, 목록에서 이름을 고르면 설명이 나타나요. 빈 곳을 누르면 선택이 풀립니다.</p>
+      </div>
+      <div class="organ-info" hidden>
+        <div class="lesson-scroll">
+          <p class="lesson-chapter organ-system"></p>
+          <h2 class="lesson-title organ-name"></h2>
+          <p class="lesson-body organ-desc"></p>
+          <section class="block organ-related" hidden>
+            <h3 class="block-title">이 기관이 나오는 수업</h3>
+            <ul class="related-list"></ul>
+          </section>
+        </div>
+        <footer class="lesson-nav">
+          <button type="button" class="btn btn-quiet" data-action="clear">${ICON.close}<span>선택 해제</span></button>
+        </footer>
+      </div>
+    </aside>`;
+
+  const rail = requireEl<HTMLElement>(root, ".rail");
+  const railScrim = requireEl<HTMLElement>(root, ".rail-scrim");
+  const railToggle = requireEl<HTMLButtonElement>(root, ".rail-toggle");
+  const side = requireEl<HTMLElement>(root, ".side");
+  const empty = requireEl<HTMLElement>(root, ".organ-empty");
+  const info = requireEl<HTMLElement>(root, ".organ-info");
+  const systemEl = requireEl<HTMLElement>(root, ".organ-system");
+  const nameEl = requireEl<HTMLElement>(root, ".organ-name");
+  const descEl = requireEl<HTMLElement>(root, ".organ-desc");
+  const relatedBlock = requireEl<HTMLElement>(root, ".organ-related");
+  const relatedList = requireEl<HTMLElement>(root, ".related-list");
+
+  function setRailOpen(open: boolean): void {
+    rail.classList.toggle("is-open", open);
+    railScrim.hidden = !open;
+    railToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  root.addEventListener("click", (e) => {
+    const target = e.target instanceof Element ? e.target.closest<HTMLElement>("[data-action],[data-organ],[data-goto]") : null;
+    if (target === null) return;
+    const action = target.dataset.action;
+    if (action === "home") cb.onHome();
+    else if (action === "rail") setRailOpen(!rail.classList.contains("is-open"));
+    else if (action === "rail-close") setRailOpen(false);
+    else if (action === "clear") cb.onClearOrgan();
+    else if (target.dataset.organ !== undefined) {
+      setRailOpen(false);
+      cb.onPickOrgan(target.dataset.organ);
+    } else if (target.dataset.goto !== undefined) {
+      const [courseId, index] = target.dataset.goto.split(":");
+      if (courseId === "glucose" || courseId === "oxygen") cb.onGotoStep(courseId, Number.parseInt(index ?? "0", 10));
+    }
+  });
+
+  function showOrgan(organId: string | null): void {
+    for (const el of rail.querySelectorAll<HTMLElement>("[data-organ]")) {
+      const on = el.dataset.organ === organId;
+      el.classList.toggle("is-current", on);
+      if (on) el.scrollIntoView({ block: "nearest" });
+    }
+    const organ = organId === null ? undefined : ORGAN_MAP.get(organId);
+    side.classList.toggle("has-organ", organ !== undefined);
+    empty.hidden = organ !== undefined;
+    info.hidden = organ === undefined;
+    if (organ === undefined) return;
+    systemEl.textContent = systemLabel(organ.system);
+    nameEl.textContent = organ.label;
+    descEl.textContent = organ.description;
+    const related = relatedSteps(organ.id);
+    relatedBlock.hidden = related.length === 0;
+    relatedList.innerHTML = related
+      .map(
+        (r) => `<li><button type="button" class="related-btn" data-goto="${r.courseId}:${r.index}" data-accent="${r.courseId}">
+          <span class="related-course">${r.course}</span><span class="related-title">${r.title}</span>${ICON.arrowRight}</button></li>`,
+      )
+      .join("");
+  }
+
+  return {
+    root,
+    toolSlot: requireEl<HTMLElement>(root, ".topbar-tools"),
+    rail,
+    side,
+    topbar: requireEl<HTMLElement>(root, ".topbar"),
+    showOrgan,
+    setRailOpen,
+  };
 }
