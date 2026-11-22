@@ -1,4 +1,4 @@
-import { Box3, Color, Group, MathUtils, Mesh, MeshStandardMaterial, Vector3 } from "three";
+import { Box3, Color, Group, MathUtils, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Vector3 } from "three";
 import { GLTFLoader, type GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import skeletonUrl from "../assets/skeleton.glb?url";
@@ -8,15 +8,15 @@ import type { BodyBuilder } from "./BodyBuilder";
 
 const BONE_COLOR = 0xe8e4da;
 const TARGET_HEIGHT = 15.4;
-const TINT_MIX = 0.32;
+const TINT_MIX = 0.18;
 /** 심장·폐 등 구분이 중요한 기관은 채도를 더 살린다 (흰색 혼합 비율) */
 const TINT_OVERRIDE: Partial<Record<string, number>> = {
-  heart: 0.16,
-  lungs: 0.24,
-  liver: 0.2,
-  kidneys: 0.2,
-  smallIntestine: 0.2,
-  largeIntestine: 0.24,
+  heart: 0.1,
+  lungs: 0.14,
+  liver: 0.12,
+  kidneys: 0.12,
+  smallIntestine: 0.12,
+  largeIntestine: 0.14,
 };
 
 const loadGltf = (loader: GLTFLoader, url: string): Promise<GLTF> =>
@@ -129,10 +129,13 @@ export class AnatomyRig {
         mesh.removeFromParent();
         const src = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
         const tint = new Color(meta.color).lerp(white, TINT_OVERRIDE[id] ?? TINT_MIX);
-        const mat = new MeshStandardMaterial({
+        const mat = new MeshPhysicalMaterial({
           color: tint,
-          roughness: src && "roughness" in src ? MathUtils.clamp((src as MeshStandardMaterial).roughness, 0.4, 0.75) : 0.55,
+          roughness: src && "roughness" in src ? MathUtils.clamp((src as MeshPhysicalMaterial).roughness, 0.35, 0.6) : 0.5,
           metalness: 0,
+          clearcoat: 0.35,
+          clearcoatRoughness: 0.5,
+          envMapIntensity: 1.1,
         });
         mesh.material = mat;
         materials.push(mat);

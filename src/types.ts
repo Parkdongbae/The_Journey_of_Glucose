@@ -17,6 +17,7 @@ export type OrganShape =
   | { kind: "pair"; radius: number; gap: number; scaleY?: number; tilt?: number } // 좌우 1쌍 (폐·콩팥)
   | { kind: "tube"; radius: number; through: Vec3[]; tipRadius?: number } // 식도·기관·혈관
   | { kind: "bronchi" } // 숨관가지 2갈래
+  | { kind: "lips" } // 입: 윗입술(큐피드 활)+아랫입술 익스트루드
   | { kind: "nasal" }
   | { kind: "stomach" }
   | { kind: "liver" }

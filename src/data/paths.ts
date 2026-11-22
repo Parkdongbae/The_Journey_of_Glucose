@@ -9,12 +9,12 @@ const v = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
 export const PATHS: Record<string, PathDef> = {
   g_mouth_entry: {
     id: "g_mouth_entry",
-    points: [v(0, 15.2, 4.2), v(0, 14.4, 1.8), v(0, 13.85, 0.9), v(0, 13.6, 0.5)],
+    points: [v(0, 15.2, 4.2), v(0, 14.4, 1.9), v(0, 14.12, 1.0), v(0, 13.9, 0.68)],
   },
   g_esophagus: {
     id: "g_esophagus",
     points: [
-      v(0, 13.6, 0.5),
+      v(0, 13.9, 0.68),
       v(0, 13.2, -0.05),
       v(0, 12.4, -0.15),
       v(0, 11.6, -0.1),
@@ -105,12 +105,12 @@ export const PATHS: Record<string, PathDef> = {
   },
   o_inhale: {
     id: "o_inhale",
-    points: [v(0, 14.8, 4.5), v(0, 14.3, 1.6), v(0, 13.95, 0.7), v(0, 13.9, 0.45)],
+    points: [v(0, 14.8, 4.5), v(0, 14.45, 1.7), v(0, 14.38, 0.9), v(0, 14.32, 0.68)],
   },
   o_airway: {
     id: "o_airway",
     points: [
-      v(0, 13.9, 0.45),
+      v(0, 14.32, 0.68),
       v(0, 13.5, 0.2),
       v(0, 13.0, 0.15),
       v(0, 12.4, 0.12),
@@ -176,8 +176,8 @@ export const PATHS: Record<string, PathDef> = {
       v(0.5, 12.4, 0.2),
       v(0, 12.8, 0.15),
       v(0, 13.3, 0.2),
-      v(0, 13.85, 0.45),
-      v(0, 14.3, 1.6),
+      v(0, 14.32, 0.68),
+      v(0, 14.6, 1.8),
       v(0, 15.0, 4.2),
     ],
   },

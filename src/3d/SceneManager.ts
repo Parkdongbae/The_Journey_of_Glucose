@@ -58,7 +58,7 @@ export class SceneManager {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.toneMapping = ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 1.12;
     this.domElement = this.renderer.domElement;
     this.domElement.style.display = "block";
     this.domElement.style.touchAction = "none";
@@ -82,14 +82,16 @@ export class SceneManager {
 
     const pmrem = new PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    this.scene.environmentIntensity = 0.62;
+    this.scene.environmentIntensity = 0.85;
     pmrem.dispose();
 
     const sun = new DirectionalLight(0xfff4e6, 1.5);
     sun.position.set(6, 14, 8);
-    const fill = new DirectionalLight(0x9db8e8, 0.4);
+    const fill = new DirectionalLight(0x9db8e8, 0.55);
     fill.position.set(-8, 6, -6);
-    this.scene.add(sun, fill);
+    const rim = new DirectionalLight(0xbcd8ff, 0.85); // 뒤에서 실루엣 분리
+    rim.position.set(-4, 10, -9);
+    this.scene.add(sun, fill, rim);
     this.scene.add(this.buildContactShadow());
 
     this.observer = new ResizeObserver(() => this.doResize());

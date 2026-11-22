@@ -5,8 +5,8 @@
  */
 import type { Course, CourseId, SaveData } from "../types";
 import { COURSES } from "../data/courses";
-import glucoseThumb from "../../../images/포도당_기본.jpg";
-import oxygenThumb from "../../../images/oxygen/Oxygen Mascot Character.jpg";
+import glucoseThumb from "../../images/포도당_기본.jpg";
+import oxygenThumb from "../../images/oxygen/Oxygen Mascot Character.jpg";
 
 export interface HomeScreenCallbacks {
   onStartCourse(courseId: CourseId): void;
